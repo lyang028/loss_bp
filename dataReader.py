@@ -2,7 +2,8 @@ import csv
 import numpy as np
 import pandas as pd
 import tensorflow as tf
-from tensorflow.examples.tutorials.mnist import input_data
+
+
 
 def read_csv(path):
     csvFile = open(path, "r")

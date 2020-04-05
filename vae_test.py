@@ -3,11 +3,16 @@ import vae_model as vm
 import scipy.stats as ss
 import numpy as np
 import matplotlib.pyplot as plt
+import dataReader as dr
 
 def sort_key(e):
     epoch_str = e.split('E')
     batch_str = epoch_str[1].split('b')
     return int(epoch_str[0])*468+int(batch_str[0])
+def sort_key_selection(e):
+    epoch_str = e.split('E')
+    batch_str = epoch_str[1].split('b')
+    return int(epoch_str[0])*46+int(batch_str[0])
 def sum_layer(array):
     length = 1
     shape = np.shape(array)
@@ -33,8 +38,6 @@ def resize_model(weights):
         f_w = resize_layer(w)
         output.extend(f_w)
         length = length+len(f_w)
-
-    print(length)
     # oa = np.array(output).flatten(order='C')
     oa = output
     return oa
@@ -77,11 +80,16 @@ def cosine_similarity(x, y, norm=False):
 
     return 0.5 * cos + 0.5 if norm else cos  # 归一化到[0, 1]区间内
 
-file_ls = os.listdir('weights')
-file_ls.sort(key=sort_key)
+output_path = input('enter output path:')
+
+file_ls = os.listdir(output_path)
+file_ls.sort(key=sort_key_selection)
 
 
-vm.vae.load_weights('weights/4E467b.h5')
+# vm.vae.load_weights(output_path+'/0E0b.h5')
+# vm.vae.load_weights(output_path+'/4E467b.h5') #end of normal
+vm.vae.load_weights(output_path+'/4E46b.h5') #end of sample_selection
+
 vmodel = vm.vae.get_weights()
 RATIO = 100000
 target = resize_model(vmodel)
@@ -100,7 +108,8 @@ for file in file_ls:
     extend = os.path.splitext(file)[-1][1:]
     if (extend != 'h5'):
         continue
-    vm.vae.load_weights('weights/'+file)
+    vm.vae.load_weights(output_path+ '/' +file)
+    print(file)
     vcurrent = resize_model(vm.vae.get_weights())
 
     E_dis = np.linalg.norm(np.array(target)-np.array(vcurrent),ord=2)
@@ -113,6 +122,10 @@ for file in file_ls:
     W_dis = ss.wasserstein_distance(np.array(ntarget).transpose(),np.array(nvcurrent).transpose())
     wds.append(W_dis)
 
+    # print(C_dis)
+    # print(E_dis)
+    # print(W_dis)
+    print(file)
     if len(pre_previous) == 0:
         pre_previous = vcurrent
         continue
@@ -127,8 +140,9 @@ for file in file_ls:
         pre_previous = previous
         previous = vcurrent
 
-    print('count ',i)
+    # print(C_dis_diff)
     i = i+1
+    print('*********************************')
     # if i>10:
     #     break
 # list = []
@@ -136,18 +150,23 @@ for file in file_ls:
 # list.append(wds)
 # name_list = ['ed','wd']
 # draw_plot(list,name_list)
+
 plt.plot(range(len(eds)),eds)
-plt.savefig('E_dis.png')
+dr.save_data(eds,'record/'+output_path+'/E_dis_random.csv')
+plt.savefig('record/'+output_path+'/E_dis_random.png')
 plt.close()
 
 plt.plot(range(len(wds)),wds)
-plt.savefig('W_dis.png')
+dr.save_data(eds,'record/'+output_path+'/W_dis_random.csv')
+plt.savefig('record/'+output_path+'/W_dis_random.png')
 plt.close()
 
 plt.plot(range(len(cds)),cds)
-plt.savefig('C_dis.png')
+dr.save_data(eds,'record/'+output_path+'/C_dis_random.csv')
+plt.savefig('record/'+output_path+'/C_dis_random.png')
 plt.close()
 
 plt.plot(range(len(cds_dif)),cds_dif)
-plt.savefig('C_dis_dif.png')
+dr.save_data(eds,'record/'+output_path+'/C_dis_diff_random.csv')
+plt.savefig('record/'+output_path+'/C_dis_dif_random.png')
 plt.close()

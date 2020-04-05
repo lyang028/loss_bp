@@ -20,19 +20,35 @@ def sampleing(args):
     eps = K.random_normal([K.shape(mu)[0], Z_DIM], mean=0.0, stddev=1.0)
     return mu + eps * K.exp(logvar / 2.)
 
-# encode
+# # encode
+# x_in = Input([IN_DIM])
+# h = Dense(H_DIM, activation='relu')(x_in)
+# z_mu = Dense(Z_DIM)(h)  # mean，不用激活
+# z_logvar = Dense(Z_DIM)(h)  # log variance，不用激活
+# z = Lambda(sampleing, output_shape=[Z_DIM])([z_mu, z_logvar])  # 只能有一个参数
+# encoder = Model(x_in, [z_mu, z_logvar, z], name='encoder')
+#
+# # decode
+# z_in = Input([Z_DIM])
+# h_hat = Dense(H_DIM, activation='relu')(z_in)
+# x_hat = Dense(IN_DIM, activation='sigmoid')(h_hat)
+# decoder = Model(z_in, x_hat, name='decoder')
+
+k_init = 'RandomNormal'
+b_init = 'zeros'
 x_in = Input([IN_DIM])
-h = Dense(H_DIM, activation='relu')(x_in)
-z_mu = Dense(Z_DIM)(h)  # mean，不用激活
-z_logvar = Dense(Z_DIM)(h)  # log variance，不用激活
+h = Dense(H_DIM,kernel_initializer=k_init,bias_initializer=b_init,activation='relu')(x_in)
+z_mu = Dense(Z_DIM,kernel_initializer=k_init,bias_initializer=b_init,)(h)  # mean，不用激活
+z_logvar = Dense(Z_DIM,kernel_initializer=k_init,bias_initializer=b_init,)(h)  # log variance，不用激活
 z = Lambda(sampleing, output_shape=[Z_DIM])([z_mu, z_logvar])  # 只能有一个参数
 encoder = Model(x_in, [z_mu, z_logvar, z], name='encoder')
 
 # decode
 z_in = Input([Z_DIM])
-h_hat = Dense(H_DIM, activation='relu')(z_in)
-x_hat = Dense(IN_DIM, activation='sigmoid')(h_hat)
+h_hat = Dense(H_DIM,kernel_initializer=k_init,bias_initializer=b_init, activation='relu')(z_in)
+x_hat = Dense(IN_DIM,kernel_initializer=k_init,bias_initializer=b_init, activation='sigmoid')(h_hat)
 decoder = Model(z_in, x_hat, name='decoder')
+
 
 # VAE
 x_in = Input([IN_DIM])
@@ -48,6 +64,7 @@ def loss_kl(y_true, y_pred):
 vae.compile(optimizer='rmsprop',
             loss=[loss_kl, 'binary_crossentropy'],
             loss_weights=[1, IN_DIM])
+
 
 
 
