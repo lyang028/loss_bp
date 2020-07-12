@@ -1,4 +1,4 @@
-import cnn_model as cm
+import cnn_model_m1 as cm
 import numpy as np
 import os
 import random
@@ -185,7 +185,7 @@ def single_label_training(file_address ,sample_index,standard_init = 'Yes'):
         "---  There is this folder!  ---"
     if standard_init == 'Yes':
         print('standard_init using')
-        cm.model.load_weights('standard_init.h5')
+        cm.model.load_weights('m1_standard_init.h5')
     length = x_train.shape[0]
     training_order = list(range(length))
     random.shuffle(training_order)
@@ -426,7 +426,7 @@ def mixed_combination(file_address,label_set, test_length = 5000, standard_init 
 # error_label_shift([10,20,30,40,50,60,70,80,90])
 # error_label_randomize()
 # multi_label()
-# single_label_training('cnn_sl_0',0)
+single_label_training('cnn_sl_m1_0',0)
 
 # helf_half_combination('cnn_2_0_combine',0,2)
-mixed_combination('cnn_mix_all',[0,1,2,3,4,5,6,7,8,9])
+# mixed_combination('cnn_mix_all',[0,1,2,3,4,5,6,7,8,9])

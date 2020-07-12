@@ -1,5 +1,5 @@
 import os
-import cnn_model as cm
+import cnn_model_m1 as cm
 import scipy.stats as ss
 import scipy
 import numpy as np
@@ -652,7 +652,11 @@ def compare_two_sequence_accuracy(path1,path2):
 #         'cnn_mix_all/5/0E38b.h5','cnn_mix_all/4/0E38b.h5','cnn_mix_all/3/0E38b.h5','cnn_mix_all/2/0E38b.h5',
 #         'cnn_mix_all/1/0E38b.h5','cnn_mix_all/0/0E38b.h5']
 # analyse_sequence(path,tpath,kl.KL_div,'KL_div')
+# path = ['cnn_m1_first']
+# tpath = ['cnn_m1_first/0E467b.h5']
+# analyse_sequence(path,tpath,kl.KL_div,'KL_div')
+#
+# path = ['cnn_sl_m1_0']
+# tpath = ['cnn_sl_m1_0/0E45b.h5']
+# analyse_sequence(path,tpath,kl.KL_div,'KL_div')
 
-path = ['cnn_sl_0']
-tpath = ['cnn_sl_0/0E45b.h5']
-analyse_sequence(path,tpath,kl.KL_div,'KL_div')
