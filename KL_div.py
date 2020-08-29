@@ -12,6 +12,10 @@ def rel_entr(a,b):
 def softmax(a):
     ex_a = np.exp(a)
     return ex_a/sum(ex_a)
+
+def sigmoid(a):
+    x = 1/(1+np.exp(-a))
+    return x/sum(x)
 def entropy(pk, qk=None, base=None, axis=0):
     pk = np.array(pk)
     pk = softmax(pk)
@@ -25,8 +29,9 @@ def entropy(pk, qk=None, base=None, axis=0):
         vec = rel_entr(pk, qk)
     S = np.sum(vec, axis=axis)
     if S < 0:
-        print(S)
-        print(sum(qk),sum(pk))
+        # print('error S:'+ str(S))
+        # print(sum(qk),sum(pk))
+        return 0
     if base is not None:
         S /= np.log(base)
     return S
@@ -63,8 +68,31 @@ def resize_model(weights):
     oa = output
     return oa
 
+def KL_div_sigmoid(pk, qk=None, base=None, axis=0):
+    pk = np.array(pk)
+    pk = sigmoid(pk)
+    if qk is None:
+        vec = ss.entr(pk)
+    else:
+        qk = np.array(qk)
+        if qk.shape != pk.shape:
+            raise ValueError("qk and pk must have same shape.")
+        qk = sigmoid(qk)
+        vec = rel_entr(pk, qk)
+    S = np.sum(vec, axis=axis)
+    if S < 0:
+        print('error S:'+ str(S))
+        print(sum(qk),sum(pk))
+        return 0
+    if base is not None:
+        S /= np.log(base)
+    return S
 
-
+def E_dis(array1,array2):
+    return np.linalg.norm(np.array(array1) - np.array(array2), ord=2)
+# a = [2,2,2,2,2,2]
+# b = np.array(a)
+# print(sigmoid(b))
 # cm.model.load_weights('cnn_standard/0E413b.h5')
 # targetv = resize_model(cm.model.get_weights())
 #

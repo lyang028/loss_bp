@@ -3,7 +3,13 @@ import dataReader as dr
 import cnn_model as cm
 import numpy as np
 import random
-import matplotlib.pyplot as plt
+
+import cv2
+import os
+from mpl_toolkits.mplot3d import Axes3D
+from matplotlib import pyplot as plt
+from itertools import combinations, permutations
+
 def reletive_information(dataset):
     s = KL.resize_layer(sum(dataset)/len(dataset))
     ri = 0
@@ -12,7 +18,19 @@ def reletive_information(dataset):
         ri = ri+KL.KL_div(s_flat,s)+KL.KL_div(s,s_flat)
     return ri
 
+def reletive_information_centerize(dataset,datacenter):
+    s = KL.resize_layer(datacenter)
+    ri = 0
+    for si in dataset:
+        s_flat = KL.resize_layer(si)
+        ri = ri+KL.KL_div(s_flat,s)+KL.KL_div(s,s_flat)
+    return ri
 
+def reletivinformation_radiation(ar1, ar2):
+    arf1 = KL.resize_layer(ar1)
+    arf2 = KL.resize_layer(ar2)
+
+    return KL.KL_div(arf1,arf2)+KL.KL_div(arf2,arf1)
 
 def information_cleanliness(xtrain, ytrain,label_set):
     RI = reletive_information(xtrain)
@@ -125,6 +143,176 @@ def quality_evaluate(error_rate):
     plt.show()
     # plt.savefig('data_evaluation_minst/error_label_detection.png')
 
+def test_data_center(accuracy, data_length,loop,mark):# accuracy is the float saving bits
+    idx = cm.y_index_train == 0
+    xtrain = cm.x_train[idx]
+    sequnce = list(range(len(xtrain)))
+    random.shuffle(sequnce)
+    output_path = mark
+    if not os.path.exists(output_path):  # 判断是否存在文件夹如果不存在则创建为文件夹
+        os.makedirs(output_path)
+    for i in range(loop):
+        idx = sequnce[data_length * i:data_length * (i + 1)]
+        x = xtrain[idx]
+        output_subpath = mark+'/' + str(i)
+        if not os.path.exists(output_subpath):  # 判断是否存在文件夹如果不存在则创建为文件夹
+            os.makedirs(output_subpath)
+        for j in range(len(x)):
+            file_name = output_subpath+'/'+str(j)+'.png'
+            print(file_name)
+            cv2.imwrite(file_name,x[j]*255)
+        frame_test_datacenter(x,accuracy,output_subpath)
+
+
+def optimzie_key(f,accuracy):
+    f = round(f,accuracy+1)
+    str_f = str(f)
+    if f ==0 :
+        str_f = '0.0'
+    return  str_f
+
+def frame_test_datacenter(datalist,accuracy,datapath):
+    sample_rate = pow(0.01,accuracy)
+    test_center = []
+    test_center_w = test_datacenter_weights(len(datalist),1,sample_rate)
+    # average_w = np.ones(len(datalist))*(1/len(datalist)) #add average weight
+    # test_center_w.append(average_w.tolist())
+    # print(test_center_w)
+    for weights in test_center_w:
+        output = np.zeros(datalist[0].shape)
+        for i in range(len(datalist)):
+            output += datalist[i]*weights[i]
+        test_center.append(output)
+
+    RI = []
+    for center in test_center:
+        RI.append(reletive_information_centerize(datalist,center))
+    #     compare
+    for i in range(len(test_center)):
+        for j in range(0, len(test_center)-i-1):
+            if RI[j]>RI[j+1]:
+                temp = RI[j]
+                RI[j] = RI[j+1]
+                RI[j+1] = temp
+
+                temp_weights = test_center_w[j]
+                test_center_w[j] = test_center_w[j+1]
+                test_center_w[j+1] = temp_weights
+
+    # for i in range(5):
+    #     print(RI[i])
+    #     print(test_center_w[i])
+    dr.save_data(RI,datapath+'/RI.csv')
+    dr.save_data(test_center_w, datapath+'/test_center_w.csv')
+    print(RI[0])
+    print(test_center_w[0])
+
+    zz = np.array(RI, dtype='float')
+
+    dim = list(range(len(datalist)))
+    dim_set = permutations(dim,2)
+    for dim_select in dim_set:
+        key = []
+        for w in test_center_w:
+            w_d1 = optimzie_key(w[dim_select[0]],accuracy+1)
+            w_d2 = optimzie_key(w[dim_select[1]],accuracy+1)
+            mark1 = 'x' + str(w_d1)
+            mark2 = 'y' + str(w_d2)
+            key.append( mark1+ mark2)
+        dic = dict(zip(key, zz))
+        print(len(dic))
+
+        xx = np.arange(0, 1 + sample_rate, sample_rate)
+        yy = np.arange(0, 1 + sample_rate, sample_rate)
+        X, Y = np.meshgrid(xx, yy)
+
+        Z = np.zeros(X.shape)
+        for i in range(len(xx)):
+            for j in range(len(xx)):
+                if X[i, j] + Y[i, j] > 1:
+                    Z[i, j] = 0
+                else:
+                    w_d1 = optimzie_key(X[i, j],accuracy+1)
+                    w_d2 = optimzie_key(Y[i, j], accuracy + 1)
+                    mark1 =  'x' + str(w_d1)
+                    mark2 =  'y' + str(w_d2)
+                    print(mark1 + mark2)
+                    Z[i, j] = dic[mark1+mark2]
+        fig = plt.figure()  # 定义新的三维坐标轴
+        ax3 = plt.axes(projection='3d')
+        ax3.plot_surface(X, Y, Z, cmap='rainbow')
+        ax3.set_xlabel('sample '+ str(dim_select[0])+' weight', fontsize=10, rotation=150)
+        ax3.set_ylabel('sample '+ str(dim_select[1])+' weights')
+        ax3.set_zlabel('RI')
+        plt.savefig(datapath+str(dim_select[0])+'_'+str(dim_select[1])+'.png')
+        plt.close()
+
+
+
+
+def test_datacenter_weights(length, rest_ratio,sample_rate):
+    if length == 1:
+        return [[rest_ratio]]
+    if rest_ratio < -0.00001:
+        output = np.zeros(length)
+        return [output.tolist()]
+    possible = []
+    length -= 1
+
+    sample_time = int(1/sample_rate)+1
+    for i in range(sample_time):
+        current_weight = i * sample_rate
+        restw_sum = rest_ratio - current_weight
+        if restw_sum < -0.000001:
+            break
+
+        weights_rest = test_datacenter_weights(length, restw_sum,sample_rate)
+        for j in range(len(weights_rest)):
+            weights_rest[j].append(current_weight)
+        possible.extend(weights_rest)
+
+    return possible
+
+
+
+def verify_disequition(d1,d2,d3):
+    if d1+d2<d3:
+        return False
+    elif d1+d3<d2:
+        return False
+    elif d2+d3<d1:
+        return False
+    return True
+
+def frame_test_RI_tri(loop):
+    samples = []
+
+    samples.append(cm.x_train[0])
+    samples.append(cm.x_train[1])
+
+    test_RI_triangulation(samples,0.01)
+
+def test_RI_triangulation(samples,test_times):
+    samples[0]
+    ar = np.arange(0,1,test_times)
+    dis3 = reletivinformation_radiation(samples[0],samples[1])
+    for rate in ar:
+        if rate<0.4 or rate>0.6:
+            continue
+        noise = np.random.randint(0,10,samples[0].shape)/100
+        s = samples[0]*rate+samples[1]*(1-rate)+noise
+        # s = noise
+        dis1 = reletivinformation_radiation(samples[0],s)
+        dis2 = reletivinformation_radiation(samples[1],s)
+        if not verify_disequition(dis1,dis2,dis3):
+            print('error')
+            print(dis1)
+            print(dis2)
+            print(dis3)
+
+
+
+
 # kl = multilabel_RI()
 # print(kl)
 # dr.save_data(kl,'data_evaluation_minst/multilabel_RI.csv')
@@ -156,3 +344,142 @@ def quality_evaluate(error_rate):
 #     return kl
 #
 # multilabel_RI_test()
+
+# b = np.c_[a[:,1],a[:,0],a[:,2]]
+# c = np.c_[a[:,1],a[:,2],a[:,0]]
+# all = np.r_[a,b,c]
+
+# print(a)
+# test_data_center(1,3,1,'data_evaluation_minst/data_center_test/mark_A_details')
+
+
+# frame_test_RI_tri(10)
+
+
+def figure_grid(length, rest_ratio,sample_rate):
+    if length == 1:
+        return [[rest_ratio]]
+    possible = []
+    length -= 1
+
+    sample_time = int(2/sample_rate)+1
+    for i in range(sample_time):
+        current_weight = i * sample_rate -1
+        restw_sum = rest_ratio - current_weight
+        weights_rest = figure_grid(length, restw_sum,sample_rate)
+        for j in range(len(weights_rest)):
+            weights_rest[j].append(current_weight)
+        possible.extend(weights_rest)
+
+    return possible
+def figure3D_test_datacenter(datalist,accuracy,datapath):
+    sample_rate = pow(0.01,accuracy)
+    print(sample_rate)
+    test_center = []
+    test_center_w = figure_grid(len(datalist),1,sample_rate)
+    # average_w = np.ones(len(datalist))*(1/len(datalist)) #add average weight
+    # test_center_w.append(average_w.tolist())
+    # print(test_center_w)
+    print(len(test_center_w))
+    index = 0
+    for weights in test_center_w:
+        output = np.zeros(datalist[0].shape)
+        for i in range(len(datalist)):
+            output += datalist[i]*weights[i]
+        test_center.append(output)
+    RI = []
+    for center in test_center:
+        RI.append(reletive_information_centerize(datalist,center))
+        print(index)
+        index += 1
+    #     compare
+    print('centerget')
+    # for i in range(len(test_center)):
+    #     for j in range(0, len(test_center)-i-1):
+    #         if RI[j]>RI[j+1]:
+    #             temp = RI[j]
+    #             RI[j] = RI[j+1]
+    #             RI[j+1] = temp
+    #
+    #             temp_weights = test_center_w[j]
+    #             test_center_w[j] = test_center_w[j+1]
+    #             test_center_w[j+1] = temp_weights
+
+    # for i in range(5):
+    #     print(RI[i])
+    #     print(test_center_w[i])
+    RI_min = RI[0]
+    RI_max = RI[-1]
+    dr.save_data(RI,datapath+'/RI.csv')
+    dr.save_data(test_center_w, datapath+'/test_center_w.csv')
+    print(RI[0])
+    print(test_center_w[0])
+
+    zz = np.array(RI, dtype='float')
+
+    dim = list(range(len(datalist)))
+    dim_set = permutations(dim,2)
+    for dim_select in dim_set:
+        key = []
+        for w in test_center_w:
+            w_d1 = optimzie_key(w[dim_select[0]],accuracy+1)
+            w_d2 = optimzie_key(w[dim_select[1]],accuracy+1)
+            mark1 = 'x' + str(w_d1)
+            mark2 = 'y' + str(w_d2)
+            key.append( mark1+ mark2)
+        dic = dict(zip(key, zz))
+        print(len(dic))
+
+        xx = np.arange(0, 1 + sample_rate, sample_rate)
+        yy = np.arange(0, 1 + sample_rate, sample_rate)
+        X, Y = np.meshgrid(xx, yy)
+
+        Z = np.zeros(X.shape)
+        for i in range(len(xx)):
+            for j in range(len(xx)):
+                w_d1 = optimzie_key(X[i, j], accuracy + 1)
+                w_d2 = optimzie_key(Y[i, j], accuracy + 1)
+                mark1 = 'x' + str(w_d1)
+                mark2 = 'y' + str(w_d2)
+                print(mark1 + mark2)
+                Z[i, j] = dic[mark1 + mark2]
+        fig = plt.figure()  # 定义新的三维坐标轴
+        ax3 = plt.axes(projection='3d')
+        ax3.plot_surface(X, Y, Z, cmap='rainbow')
+        ax3.set_xlabel('sample '+ str(dim_select[0])+' weight', fontsize=10, rotation=150)
+        ax3.set_ylabel('sample '+ str(dim_select[1])+' weights')
+        ax3.set_zlabel('RI')
+        plt.savefig(datapath + str(dim_select[0]) + '_' + str(dim_select[1]) + '.png')
+        plt.close()
+
+        # ax3.contour(X, Y, Z, offset=-2, colors='black')  # 生成等高线 offset参数是等高线所处的位置
+        ratio = Z.max() - Z.min()
+        rag = np.arange(0,10,1)*ratio/10+Z.min()
+        C = plt.contour(X, Y, Z,rag,cmap = 'rainbow')
+        plt.clabel(C, inline=True, fontsize=10)  # 在等高线上标出对应的z值
+        # ax3.set_zlim(-1, 1)  # 设置z的范围
+
+        plt.savefig(datapath+str(dim_select[0])+'_'+str(dim_select[1])+'contour.png')
+        plt.close()
+
+def figure_test_datacenter(accuracy, data_length,loop,mark):# accuracy is the float saving bits
+    idx = cm.y_index_train == 0
+    xtrain = cm.x_train[idx]
+    sequnce = list(range(len(xtrain)))
+    random.shuffle(sequnce)
+    output_path = mark
+    if not os.path.exists(output_path):  # 判断是否存在文件夹如果不存在则创建为文件夹
+        os.makedirs(output_path)
+    for i in range(loop):
+        idx = sequnce[data_length * i:data_length * (i + 1)]
+        x = xtrain[idx]
+        output_subpath = mark+'/' + str(i)
+        if not os.path.exists(output_subpath):  # 判断是否存在文件夹如果不存在则创建为文件夹
+            os.makedirs(output_subpath)
+        for j in range(len(x)):
+            file_name = output_subpath+'/'+str(j)+'.png'
+            print(file_name)
+            cv2.imwrite(file_name,x[j]*255)
+        figure3D_test_datacenter(x,accuracy,output_subpath)
+
+# figure_test_datacenter(1,3,1,'data_evaluation_minst/data_center_test/mark_C')

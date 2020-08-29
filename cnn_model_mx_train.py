@@ -426,6 +426,35 @@ def mixed_combination(file_address,label_set, test_length = 5000, standard_init 
 # error_label_shift([10,20,30,40,50,60,70,80,90])
 # error_label_randomize()
 # multi_label()
+
+def over_fitting_training(file_address):
+    x_train = cm.x_train
+    y_train = cm.y_train
+    if not os.path.exists(file_address):  # 判断是否存在文件夹如果不存在则创建为文件夹
+        os.makedirs(file_address)  # makedirs 创建文件时如果路径不存在会创建这个路径
+        os.makedirs('record/' + file_address)
+        print
+        "---  new folder...  ---"
+        print
+        "---  OK  ---"
+    else:
+        print
+        "---  There is this folder!  ---"
+    length = x_train.shape[0]
+    training_order = list(range(length))
+    random.shuffle(training_order)
+
+    for epoch in range(cm.epochs):
+        for b in range(x_train.shape[0] // cm.batch_size):
+            idx = training_order[b * cm.batch_size:(b + 1) * cm.batch_size]
+            x = x_train[idx]
+            y = y_train[idx]
+            l = cm.model.train_on_batch(x, y)
+            name = file_address + '/' + str(epoch) + 'E' + str(b) + 'b.h5'
+            cm.model.save(name)
+            print(name)
+
+
 single_label_training('cnn_sl_m1_0',0)
 
 # helf_half_combination('cnn_2_0_combine',0,2)

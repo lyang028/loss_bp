@@ -429,4 +429,5 @@ def mixed_combination(file_address,label_set, test_length = 5000, standard_init 
 # single_label_training('cnn_sl_0',0)
 
 # helf_half_combination('cnn_2_0_combine',0,2)
+
 mixed_combination('cnn_mix_all',[0,1,2,3,4,5,6,7,8,9])

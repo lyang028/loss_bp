@@ -7,6 +7,8 @@ import matplotlib.pyplot as plt
 import dataReader as dr
 import random
 import KL_div as kl
+import keras
+from keras.datasets import mnist
 
 def sort_key(e):
     epoch_str = e.split('E')
@@ -95,6 +97,39 @@ def normalize(array,ratio):
     ntarget = [a * ratio for a in array]
     ntarget = [a / sumv for a in ntarget]
     return ntarget
+
+def create_data_set(labels = [0,1,2,3,4,5,6,7,8,9,10],amount = 4000):
+    # input image dimensions
+    # the data, split between train and test sets
+    (x_train, y_index_train), (x_test, y_index_test) = mnist.load_data()
+    x_train = x_train.reshape(x_train.shape[0], 28, 28, 1)
+    x_test = x_test.reshape(x_test.shape[0], 28, 28, 1)
+    x_train = x_train.astype('float32')
+    x_test = x_test.astype('float32')
+    x_train /= 255
+    x_test /= 255
+
+    x_train_out = []
+    y_index_train_out = []
+    x_test_out = []
+    y_index_test_out = []
+    for i in labels:
+        idx = y_index_train == i
+        x_sub = x_train[idx]
+        y_sub = y_index_train[idx]
+        x_train_out.extend(x_sub[:amount])
+        y_index_train_out.extend(y_sub[:amount])
+
+        idx = y_index_test == i
+        x_testsub = x_test[idx]
+        y_testsub = y_index_test[idx]
+        x_test_out.extend(x_testsub[:amount])
+        y_index_test_out.extend(y_testsub[:amount])
+
+    y_train = keras.utils.to_categorical(y_index_train_out, 10)
+    y_test = keras.utils.to_categorical(y_index_test_out, 10)
+    return  np.array(x_train_out),np.array(x_test_out),y_train,y_test
+
 
 def cosine_similarity(x, y, norm=False):
     """ 计算两个向量x和y的余弦相似度 """
@@ -537,16 +572,28 @@ def compare_two_sequence(path1,path2,metric,metric_name):
         distance.append(dis)
     dr.save_data(distance,file_address+'/'+metric_name+'.csv')
 
-def analyse_sequence(path_set, target_path_set, metric, metric_name):
+def analyse_sequence(path_set, target_path_set,metric, metric_name,output_path_set = [],test_range = []):
+
     for i in range(len(path_set)):
+        if len(test_range) == 0:
+            x_train, x_test, y_train, y_test = create_data_set()
+        else:
+            x_train, x_test, y_train, y_test = create_data_set(range(test_range[i][0]),test_range[i][1])
         path = path_set[i]
         target_path = target_path_set[i]
-        file_address = 'record/' + path
+        if len(output_path_set) == 0:
+            file_address = 'record/' + path
+        else:
+            file_address = output_path_set[i]
 
         file_ls1 = os.listdir(path)
         file_ls1.sort(key=sort_key)
 
         distance = []
+        for i in range(len(metric)):
+            distance.append([])
+        loss_set = []
+        acc_set = []
         cm.model.load_weights(target_path)
         targetv = resize_model(cm.model.get_weights())
         for file in file_ls1:
@@ -556,14 +603,29 @@ def analyse_sequence(path_set, target_path_set, metric, metric_name):
 
             cm.model.load_weights(path + '/' + file)
             vcurrent1 = resize_model(cm.model.get_weights())
+            for i in range(len(metric)):
+                dis = metric[i](vcurrent1, targetv)
+                distance[i].append(dis)
+                print(metric_name[i]+' '+str(dis))
 
-            dis = metric(vcurrent1, targetv)
-            distance.append(dis)
-            print(dis)
+            loss,acc = cm.model.evaluate(x_test,y_test)
+            loss_set.append(loss)
+            acc_set.append(acc)
+            print('loss'+' '+str(loss)+'   acc'+' '+str(acc))
+        for i in range(len(metric)):
+            dr.save_data(distance[i], file_address + '/' + metric_name[i] + '.csv')
+            plt.plot(range(len(distance[i])), distance[i])
+            plt.savefig(file_address + '/'+metric_name[i]+'.png')
+            plt.close()
 
-        dr.save_data(distance, file_address + '/' + metric_name + '.csv')
-        plt.plot(range(len(distance)), distance)
-        plt.savefig(file_address + '/'+metric_name+'.png')
+        dr.save_data(acc_set, file_address + '/acc.csv')
+        plt.plot(range(len(acc_set)), acc_set)
+        plt.savefig(file_address + '/ acc.png')
+        plt.close()
+
+        dr.save_data(loss_set, file_address + '/loss.csv')
+        plt.plot(range(len(loss_set)), loss_set)
+        plt.savefig(file_address + '/loss.png')
         plt.close()
 
 def compare_two_model(path1,path2,metric):
@@ -613,7 +675,11 @@ def compare_two_sequence_accuracy(path1,path2):
     dr.save_data(loss_1, file_address + '/loss1.csv')
     dr.save_data(loss_2, file_address + '/loss2.csv')
 
-
+def single_weight_test(path_init,path_end,test_set = [-1]):
+    dis = compare_two_model(path_init,path_end,kl.KL_div)
+    loss,ac = accuracy(cm.model,test_set)
+    print(dis)
+    print(loss,ac)
 
 # group_test(10)
 # single_test()
@@ -653,6 +719,24 @@ def compare_two_sequence_accuracy(path1,path2):
 #         'cnn_mix_all/1/0E38b.h5','cnn_mix_all/0/0E38b.h5']
 # analyse_sequence(path,tpath,kl.KL_div,'KL_div')
 
-path = ['cnn_sl_0']
-tpath = ['cnn_sl_0/0E45b.h5']
-analyse_sequence(path,tpath,kl.KL_div,'KL_div')
+# path = ['F:/entropy_analysis/CNN_mlabels/cnn_mlabel1','F:/entropy_analysis/CNN_mlabels/cnn_mlabel2']
+# tpath = ['F:/entropy_analysis/CNN_mlabels/cnn_mlabel1/0E0b.h5','F:/entropy_analysis/CNN_mlabels/cnn_mlabel2/0E0b.h5']
+# opath = ['E:/loss_bp/record/cnn_sl_test/mlabel0','E:/loss_bp/record/cnn_sl_test/mlabel1']
+# test_r = [[1,4000],[2,4000]]
+# metric = [kl.KL_div,kl.KL_div_sigmoid,kl.E_dis]
+# metric_name = ['KL_div','KL_div_sigmoid','E_dis']
+# analyse_sequence(path,tpath,metric,metric_name,output_path_set=opath,test_range=test_r)
+
+
+path = ['error_label10','error_label20','error_label30','error_label40','error_label50',
+        'error_label60','error_label70','error_label80','error_label90',]
+tpath = ['error_label10/0E467b.h5','error_label20/0E467b.h5','error_label30/0E467b.h5',
+         'error_label40/0E467b.h5','error_label50/0E467b.h5','error_label60/0E467b.h5',
+         'error_label70/0E467b.h5','error_label80/0E467b.h5','error_label90/0E467b.h5']
+opath = ['record/error_label10','record/error_label20','record/error_label30','record/error_label40',
+         'record/error_label50','record/error_label60','record/error_label70','record/error_label80',
+         'record/error_label90',]
+metric = [kl.KL_div,kl.KL_div_sigmoid,kl.E_dis]
+metric_name = ['KL_div','KL_div_sigmoid','E_dis']
+analyse_sequence(path,tpath,metric,metric_name,output_path_set=opath)
+# single_weight_test('standard_init.h5','cnn_sl_0/0E45b.h5',test_set=[0])

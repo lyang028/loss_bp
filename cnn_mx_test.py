@@ -129,6 +129,7 @@ def accuracy(model,specific_test= [-1]):
         y_test = cm.y_test[idx]
         score = model.evaluate(x_test,y_test,verbose=0)
     return score[0], score[1]
+
 def single_accuracy_test(fs,specific_test=[-1]):
     for file_address in fs:
         file_ls = os.listdir(file_address)
@@ -613,7 +614,11 @@ def compare_two_sequence_accuracy(path1,path2):
     dr.save_data(loss_1, file_address + '/loss1.csv')
     dr.save_data(loss_2, file_address + '/loss2.csv')
 
-
+def single_weight_test(path_init,path_end,test_set = [-1]):
+    dis = compare_two_model(path_init,path_end,kl.KL_div)
+    loss,ac = accuracy(cm.model,test_set)
+    print(dis)
+    print(loss,ac)
 
 # group_test(10)
 # single_test()
@@ -660,3 +665,4 @@ def compare_two_sequence_accuracy(path1,path2):
 # tpath = ['cnn_sl_m1_0/0E45b.h5']
 # analyse_sequence(path,tpath,kl.KL_div,'KL_div')
 
+single_weight_test('m1_standard_init.h5','cnn_sl_m1_0/0E45b.h5',test_set=[0])
