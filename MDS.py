@@ -10,24 +10,26 @@ import random
 import numpy as np
 import dataReader as dr
 
-def training(output_path):
+def training(output_path,select_rate = 1):
     model = create_network()
-    x_train, x_test, y_train, y_test = create_data_set(list(range(10)), 200)
+    x_train, x_test, y_train, y_test = create_data_set(list(range(10)), 4000)
     length = x_train.shape[0]
     training_order = list(range(length))
     random.shuffle(training_order)
 
     epoch = 10
     bs = 128
+    select = 0
     for epoch in range(epoch):
         for b in range(x_train.shape[0] // bs):
             idx = training_order[b * bs:(b + 1) * bs]
             x = x_train[idx]
             y = y_train[idx]
             l = model.train_on_batch(x, y)
-            name = output_path + '/' + str(epoch) + 'E' + str(b) + 'b.h5'
-            model.save(name)
-            print(name)
+            if select%select_rate == 0:
+                name = output_path + '/' + str(epoch) + 'E' + str(b) + 'b.h5'
+                model.save(name)
+                print(name)
 
 def mds_analysis(model,path_set,opath_set,dim = 2):
     weight_set = []
@@ -87,13 +89,15 @@ def mds_analysis(model,path_set,opath_set,dim = 2):
 # output_path = ['MDS_test/w4','MDS_test/w5','MDS_test/w6']
 # mds_analysis(create_network(),path,output_path)
 # training('MDS_test/weights4')
-# training('MDS_test/weights5')
-# training('MDS_test/weights6')
+# training('MDS_test/weights',select_rate=20)
+# training('MDS_test/error_label_weights',select_rate=20)
 
 # path = ['MDS_test/weights']
 # output_path = ['MDS_test/w_special']
 # mds_analysis(create_network(),path,output_path,dim=3)
-
+path = ['MDS_test/weights','MDS_test/error_label_weights']
+output_path = ['MDS_test/w1','MDS_test/w_error_label']
+mds_analysis(create_network(),path,output_path,dim=2)
 
 
 # model = create_network()
@@ -101,13 +105,13 @@ def mds_analysis(model,path_set,opath_set,dim = 2):
 # X, _ = load_digits(return_X_y=True)
 X = []
 
-for i in range(10):
-    X.append(np.ones(20)*i)
-for i in range(10):
-    X.append(np.ones(20)*i)
-print(X)
-embedding = MDS(n_components=2)
-X_transformed = embedding.fit_transform(np.array(X))
-a = 0
-print(X_transformed.shape)
-print(X_transformed)
+# for i in range(10):
+#     X.append(np.ones(20)*i)
+# for i in range(10):
+#     X.append(np.ones(20)*i)
+# print(X)
+# embedding = MDS(n_components=2)
+# X_transformed = embedding.fit_transform(np.array(X))
+# a = 0
+# print(X_transformed.shape)
+# print(X_transformed)

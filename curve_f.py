@@ -77,52 +77,70 @@ def draw_summary():
     plt.close()
 
 
-def draw(path_array, labels = [],output_path = 'no',xaxis = 'blank', yaxis = 'blank',range_select = [-1,-1],ratio = (8.0, 4.0),dpi = 300):
+def draw(path_array, labels = [],output_path = 'no',xaxis = 'blank', yaxis = 'blank',range_select = [-1,-1],ratio = (8.0, 4.0),dpi = 100,xoffset = [1,0],tight_layout = True,font_size = [20,10,10]):
     plt.rcParams['figure.figsize'] = ratio
     plt.rcParams['figure.dpi'] = dpi  # 分辨率
+    plt.xlabel(xaxis, fontsize=font_size[0])
+    plt.ylabel(yaxis, fontsize=font_size[0])
+    plt.xticks(fontsize=font_size[1])
+    plt.yticks(fontsize=font_size[1])
     if len(labels) == 0:
+        # plt.axes(xscale='log')
         for path in path_array:
             array = np.array(dr.read_csv(path), dtype=float)[:, 0]
             if range_select[0] == -1:
-                plt.plot(range(len(array)), array, label=path)
+                x = np.array(range(len(array)))*xoffset[0]+xoffset[1]
+                plt.plot(x, array)
             else:
                 array = array[range_select[0]:range_select[1]]
-                plt.plot(range(len(array)), array, label=path)
-        plt.legend()
+                x = np.array(range(len(array))) * xoffset[0] + xoffset[1]
+                plt.plot(x, array)
+        if tight_layout:
+            plt.tight_layout()
         plt.show()
     else:
         index = 0
         for path in path_array:
             array = np.array(dr.read_csv(path), dtype=float)[:, 0]
-
             if range_select[0] == -1:
                 plt.plot(range(len(array)), array, label=labels[index])
             else:
                 array = array[range_select[0]:range_select[1]]
                 plt.plot(range(len(array)), array, label=labels[index])
             index+=1
-        plt.xlabel(xaxis)
-        plt.ylabel(yaxis)
-        plt.legend()
+        plt.legend(fontsize = font_size[2])
+        if tight_layout:
+            plt.tight_layout()
         if output_path == 'no':
             plt.show()
         else:
             plt.savefig(output_path)
-def draw_standard(xcoord,ycoord,output_path = 'no',xaxis = 'blank', yaxis = 'blank',ratio = (8,4)):
+def draw_standard(xcoord,ycoord,output_path = 'no',xaxis = 'blank', yaxis = 'blank',ratio = (8,4),tight_layout = False,font_size = [10,10]):
     plt.rcParams['figure.figsize'] = ratio
     x = np.array(dr.read_csv(xcoord), dtype=float)[:, 0]
     y = np.array(dr.read_csv(ycoord), dtype=float)[:, 0]
+
+    plt.xlabel(xaxis, fontsize=font_size[0])
+    plt.ylabel(yaxis, fontsize=font_size[0])
+    plt.xticks(fontsize=font_size[1])
+    plt.yticks(fontsize=font_size[1])
     plt.plot(x, y)
-    plt.xlabel(xaxis)
-    plt.ylabel(yaxis)
+    if tight_layout:
+        plt.tight_layout()
     if output_path == 'no':
         plt.show()
     else:
         plt.savefig(output_path)
 
 
-def extract_entropydecrease(patharray,axis = 'no',xaxis = 'blank', yaxis = 'blank',ratio = (4,4),sort = 'no'):
+def extract_entropydecrease(patharray,axis = 'no',xaxis = 'blank', yaxis = 'blank',ratio = (4,4),sort = 'no',tight_layout = True,font_size = [20,10]):
     plt.rcParams['figure.figsize'] = ratio
+    plt.xlabel(xaxis, fontsize=font_size[0])
+    plt.ylabel(yaxis, fontsize=font_size[0])
+    plt.xticks(fontsize=font_size[1])
+    plt.yticks(fontsize=font_size[1])
+    if tight_layout:
+        plt.tight_layout()
     ed = []
     for path in patharray:
         array = np.array(dr.read_csv(path), dtype=float)
@@ -138,16 +156,19 @@ def extract_entropydecrease(patharray,axis = 'no',xaxis = 'blank', yaxis = 'blan
             x.sort()
             ed.sort()
         plt.plot(x, ed)
-        plt.xlabel(xaxis)
-        plt.ylabel(yaxis)
     ax = plt.gca()  # 获取当前图像的坐标轴信息
     ax.xaxis.get_major_formatter().set_powerlimits((0, 1))  # 将坐标轴的base number设置为一位。
     ax.yaxis.get_major_formatter().set_powerlimits((0, 1))  # 将坐标轴的base number设置为一位。
     plt.show()
 
-def draw_entropy_bar(patharray,data_address = 'none',xaxis = 'blank', yaxis = 'blank',ratio = (4,4),ylimitaion = (400,500)):
+def draw_entropy_bar(patharray,data_address = 'none',xaxis = 'blank', yaxis = 'blank',ratio = (4,4),ylimitaion = (400,500),tight_layout = True, font_size = [20,10]):
     plt.rcParams['figure.figsize'] = ratio
-
+    plt.xlabel(xaxis, fontsize=font_size[0])
+    plt.ylabel(yaxis, fontsize=font_size[0])
+    plt.xticks(fontsize=font_size[1])
+    plt.yticks(fontsize=font_size[1])
+    if tight_layout:
+        plt.tight_layout()
     if data_address == 'none':
         ed = []
         for path in patharray:
@@ -176,14 +197,12 @@ def optimzie_key(f,accuracy):
     return  str_f
 
 
-def draw_contour(RI_path,weight_path,output_path,sample_rate = 0.01):
+def draw_contour(RI_path,weight_path,output_path,sample_rate = 0.01,font_size = [20,10,10]):
     RI = np.array(dr.read_csv(RI_path),dtype=float)
     test_center_w = np.array(dr.read_csv(weight_path),dtype=float)
-
     zz = np.array(RI, dtype='float')
-
     dim = range(3)
-    dim_set = permutations(dim, 2)
+    dim_set = combinations(dim, 2)
     for dim_select in dim_set:
         key = []
         for w in test_center_w:
@@ -209,31 +228,38 @@ def draw_contour(RI_path,weight_path,output_path,sample_rate = 0.01):
                     Z[i, j] = dic[mark1 + mark2]
                 else:
                     Z[i, j] = 0
-
+        # plt.rcParams['figure.figsize'] = [6,4]
         ax3 = plt.axes(projection='3d')
-        ax3.plot_surface(X, Y, Z, cmap='rainbow')
-        ratio = Z.max() - Z.min()
-        rag = np.arange(0, 10, 0.2) * ratio / 10 + Z.min() + 0.0001
-        ax3.contour(X, Y, Z,rag, offset=-1, cmap='hot')
-        ax3.set_zlim(-1, 1)  # 设置z的范围
-        ax3.set_xlabel('sample ' + str(dim_select[0]) + ' weight', fontsize=10, rotation=150)
-        ax3.set_ylabel('sample ' + str(dim_select[1]) + ' weights')
-        ax3.set_zlabel('RI')
-        plt.savefig(output_path + str(dim_select[0]) + '_' + str(dim_select[1]) + '.png')
+        handle = ax3.plot_surface(X, Y, Z, cmap='nipy_spectral')
+        zoom = Z.max() - Z.min()
+        # rag = np.arange(0, 10, 0.2) * ratio / 10 + Z.min() + 0.0001
+        # ax3.contour(X, Y, Z,rag, offset=0, cmap='hot')
+        # ax3.set_zlim(0, 1)  # 设置z的范围
+        ax3.set_zlabel('RI', fontsize=font_size[0])
+        # ax3.set_zticks([])
+        plt.xlabel('$s_ ' + str(dim_select[0]) + '$ weight', fontsize=font_size[0])
+        plt.ylabel('$s_ ' + str(dim_select[1]) + '$ weight', fontsize=font_size[0])
+        # fig = plt.figure()
+        plt.colorbar(handle)
+        plt.tight_layout()
+        plt.show()
         plt.close()
 
-        # ax3.contour(X, Y, Z, offset=-2, colors='black')  # 生成等高线 offset参数是等高线所处的位置
-        ratio = Z.max() - Z.min()
-        rag = np.arange(0, 10, 0.2) * ratio / 10 + Z.min()+0.0001
+        plt.rcParams['figure.figsize'] = [4.2, 4]
+        plt.xlabel('$s_ ' + str(dim_select[0]) + '$ weight', fontsize=font_size[0])
+        plt.ylabel('$s_ ' + str(dim_select[1]) + '$ weight', fontsize=font_size[0])
+        zoom = Z.max() - Z.min()
+        rag = np.arange(0, 10, 0.2) * zoom / 10 + Z.min()+0.0001
 
         C = plt.contour(X, Y, Z, rag, cmap='rainbow')
+        plt.tight_layout()
+        plt.show()
         # plt.clabel(C, inline=True, fontsize=10)  # 在等高线上标出对应的z值
         # ax3.set_zlim(-1, 1)  # 设置z的范围
-
-        plt.savefig(output_path + str(dim_select[0]) + '_' + str(dim_select[1]) + 'contour.png')
+        # plt.savefig(output_path + str(dim_select[0]) + '_' + str(dim_select[1]) + 'contour.png')
         plt.close()
 
-def draw_scatter(path_set,data_address = 'none',xaxis = 'blank', yaxis = 'blank',ratio = (4,4),ylimitaion = (400,500),axis = [],range_select = [],open_color = True):
+def draw_scatter(path_set,data_address = 'none',xaxis = 'blank', yaxis = 'blank',ratio = (4,4),ylimitaion = (400,500),axis = [],range_select = [],open_color = True,font_size = 20):
     plt.rcParams['figure.figsize'] = ratio
     for path in path_set:
         array = np.array(dr.read_csv(path), dtype=float)
@@ -298,39 +324,39 @@ def draw_scatter3D(path_set,data_address = 'none',xaxis = 'blank', yaxis = 'blan
     # ax.xaxis.get_major_formatter().set_powerlimits((0, 1))  # 将坐标轴的base number设置为一位。
     # ax.yaxis.get_major_formatter().set_powerlimits((0, 1))  # 将坐标轴的base number设置为一位。
 #figure 1
-# path_array = ['record/cnn_mlabel/1/KL_div.csv',
-#               'record/cnn_mlabel/2/KL_div.csv',
-#               'record/cnn_mlabel/3/KL_div.csv',
-#               'record/cnn_mlabel/4/KL_div.csv',
-#               'record/cnn_mlabel/5/KL_div.csv',
-#               'record/cnn_mlabel/6/KL_div.csv',
-#               'record/cnn_mlabel/7/KL_div.csv',
-#               'record/cnn_mlabel/8/KL_div.csv',
-#               'record/cnn_mlabel/9/KL_div.csv',
-#               'record/cnn_standard/KL_div.csv']
-# draw(path_array,['$A_0$','$A_1$','$A_2$','$A_3$','$A_4$','$A_5$','$A_6$','$A_7$','$A_8$','$A_9$'],xaxis='Training steps',yaxis='$\Delta S$')
+path_array = ['record/cnn_mlabel/1/KL_div.csv',
+              'record/cnn_mlabel/2/KL_div.csv',
+              'record/cnn_mlabel/3/KL_div.csv',
+              'record/cnn_mlabel/4/KL_div.csv',
+              'record/cnn_mlabel/5/KL_div.csv',
+              'record/cnn_mlabel/6/KL_div.csv',
+              'record/cnn_mlabel/7/KL_div.csv',
+              'record/cnn_mlabel/8/KL_div.csv',
+              'record/cnn_mlabel/9/KL_div.csv',
+              'record/cnn_standard/KL_div.csv']
+# draw(path_array,['$A_0$','$A_1$','$A_2$','$A_3$','$A_4$','$A_5$','$A_6$','$A_7$','$A_8$','$A_9$'],xaxis='Training Steps',yaxis='$\Delta S$',ratio=[12,4],tight_layout=True,font_size=[20,10,10])
 #figure 2
-# extract_entropydecrease(path_array,'data_evaluation_minst/len_mnist.csv',xaxis='Training steps',yaxis='$\Delta S$')
-# extract_entropydecrease(path_array,'data_evaluation_minst/multilabel_RI.csv',xaxis='Relative Information',yaxis='$\Delta S$')
+# extract_entropydecrease(path_array,'data_evaluation_minst/len_mnist.csv',xaxis='Len(D)',yaxis='$\Delta S$')
+# extract_entropydecrease(path_array,'data_evaluation_minst/multilabel_RI.csv',xaxis='RI',yaxis='$\Delta S$')
 #figure 3
-# path_array = ['record/cnn_mix_all/0/KL_div.csv',
-#               'record/cnn_mix_all/1/KL_div.csv',
-#               'record/cnn_mix_all/2/KL_div.csv',
-#               'record/cnn_mix_all/3/KL_div.csv',
-#               'record/cnn_mix_all/4/KL_div.csv',
-#               'record/cnn_mix_all/5/KL_div.csv',
-#               'record/cnn_mix_all/6/KL_div.csv',
-#               'record/cnn_mix_all/7/KL_div.csv',
-#               'record/cnn_mix_all/8/KL_div.csv',
-#               'record/cnn_mix_all/9/KL_div.csv']
-# extract_entropydecrease(path_array,'data_evaluation_minst/mixed_label_RI.csv',xaxis='Relative Information',yaxis='$\Delta S$',sort='Yes')
-# draw_entropy_bar(path_array,xaxis='Experiment Index',yaxis='$\Delta S$',ylimitaion= [0.0000001,0.000009],ratio=[4.5,4])
-# draw_entropy_bar([],data_address='data_evaluation_minst/mixed_label_RI.csv',xaxis='Experiment Index',yaxis='$Relative Information$',ylimitaion=(400,460),ratio=[4.5,4])
-# draw_entropy_bar([],data_address='data_evaluation_minst/averagenumber_label_RI.csv',xaxis='label Index',yaxis='$Relative Information$',ratio=[4.5,4],ylimitaion=(0.004,0.0085))
+path_array = ['record/cnn_mix_all/0/KL_div.csv',
+              'record/cnn_mix_all/1/KL_div.csv',
+              'record/cnn_mix_all/2/KL_div.csv',
+              'record/cnn_mix_all/3/KL_div.csv',
+              'record/cnn_mix_all/4/KL_div.csv',
+              'record/cnn_mix_all/5/KL_div.csv',
+              'record/cnn_mix_all/6/KL_div.csv',
+              'record/cnn_mix_all/7/KL_div.csv',
+              'record/cnn_mix_all/8/KL_div.csv',
+              'record/cnn_mix_all/9/KL_div.csv']
+# extract_entropydecrease(path_array,'data_evaluation_minst/mixed_label_RI.csv',xaxis='RI',yaxis='$\Delta S$',sort='Yes')
+# draw_entropy_bar(path_array,xaxis='Index',yaxis='$\Delta S$',ylimitaion= [0.0000001,0.000009],ratio=[4.5,4])
+# draw_entropy_bar([],data_address='data_evaluation_minst/mixed_label_RI.csv',xaxis='Index',yaxis='RI',ylimitaion=(400,460),ratio=[4.5,4])
+# draw_entropy_bar([],data_address='data_evaluation_minst/averagenumber_label_RI.csv',xaxis='Label',yaxis='RI',ratio=[4.5,4],ylimitaion=(0.004,0.0085))
 
 #figure3
 # draw_standard('data_evaluation_minst/real_error_detection.csv','data_evaluation_minst/error_label_detection.csv',
-#               xaxis='Real error rate',yaxis='Information cleanliness')
+#               xaxis='Mislabel Rate',yaxis='IC',ratio=[12,4],tight_layout=True,font_size=[20,10])
 
 # path_array = ['record/error_label10/KL_div.csv',
 
@@ -389,7 +415,7 @@ def draw_scatter3D(path_set,data_address = 'none',xaxis = 'blank', yaxis = 'blan
 #               'record/error_label40/KL_div.csv','record/error_label50/KL_div.csv','record/error_label60/KL_div.csv',
 #               'record/error_label70/KL_div.csv','record/error_label80/KL_div.csv','record/error_label90/KL_div.csv']
 # labels = ['$A_{10}$','$A_{20}$','$A_{30}$','$A_{40}$','$A_{50}$','$A_{60}$','$A_{70}$','$A_{80}$','$A_{90}$']
-# draw(path_array,labels=labels,xaxis='Training steps',yaxis='$\Delta S$')
+# draw(path_array,labels=labels,xaxis='Training steps',yaxis='$\Delta S$',tight_layout=True,font_size=[20,10,10])
 
 # path_array = ['record/error_label10/KL_div_sigmoid.csv','record/error_label20/KL_div_sigmoid.csv','record/error_label30/KL_div_sigmoid.csv',
 #               'record/error_label40/KL_div_sigmoid.csv','record/error_label50/KL_div_sigmoid.csv','record/error_label60/KL_div_sigmoid.csv',
@@ -407,21 +433,21 @@ def draw_scatter3D(path_set,data_address = 'none',xaxis = 'blank', yaxis = 'blan
 #               'record/error_label70/acc.csv','record/error_label80/acc.csv','record/error_label90/acc.csv']
 # labels = ['$A_{10}$','$A_{20}$','$A_{30}$','$A_{40}$','$A_{50}$','$A_{60}$','$A_{70}$','$A_{80}$','$A_{90}$']
 # draw(path_array,labels=labels,xaxis='Training steps',yaxis='$Accuracy$',ratio=[8,4],dpi = 100)
-
-
-path_array = ['record/error_label10/loss.csv','record/error_label20/loss.csv','record/error_label30/loss.csv',
-              'record/error_label40/loss.csv','record/error_label50/loss.csv','record/error_label60/loss.csv',
-              'record/error_label70/loss.csv','record/error_label80/loss.csv','record/error_label90/loss.csv']
-labels = ['$A_{10}$','$A_{20}$','$A_{30}$','$A_{40}$','$A_{50}$','$A_{60}$','$A_{70}$','$A_{80}$','$A_{90}$']
-draw(path_array,labels=labels,xaxis='Training steps',yaxis='$Loss$',ratio=[8,4],dpi = 100)
+#
+#
+# path_array = ['record/error_label10/loss.csv','record/error_label20/loss.csv','record/error_label30/loss.csv',
+#               'record/error_label40/loss.csv','record/error_label50/loss.csv','record/error_label60/loss.csv',
+#               'record/error_label70/loss.csv','record/error_label80/loss.csv','record/error_label90/loss.csv']
+# labels = ['$A_{10}$','$A_{20}$','$A_{30}$','$A_{40}$','$A_{50}$','$A_{60}$','$A_{70}$','$A_{80}$','$A_{90}$']
+# draw(path_array,labels=labels,xaxis='Training steps',yaxis='$Loss$',ratio=[8,4],dpi = 100)
 #
 # path_array = ['record/cnn_mlabel/1/KL_div.csv',
 #               'record/cnn_mlabel/2/KL_div.csv']
 # draw(path_array,['$A_0$','$A_1$'],xaxis='Training steps',yaxis='$\Delta S$')
 
 #figure********************************* numerical verify
-# draw_contour('data_evaluation_minst/data_center_test/mark_C/0/RI.csv','data_evaluation_minst/data_center_test/mark_C/0/test_center_w.csv',
-             # 'data_evaluation_minst/data_center_test/mark_C/repaint/')
+draw_contour('data_evaluation_minst/data_center_test/mark_C/0/RI.csv','data_evaluation_minst/data_center_test/mark_C/0/test_center_w.csv',
+             'data_evaluation_minst/data_center_test/mark_C/repaint/')
 #figure********************************************
 # draw_scatter3D('MDS_test/output.csv')#test
 
@@ -429,16 +455,22 @@ draw(path_array,labels=labels,xaxis='Training steps',yaxis='$Loss$',ratio=[8,4],
 # draw_scatter('MDS_test/output2.csv',axis=[-2,1,-2,2.6],range_select=[0,60])#test
 # draw_scatter('MDS_test/output2.csv',axis=[-2,1,-2,2.6],range_select=[0,90])#test
 # path = ['MDS_test/2DMDS/w.csv','MDS_test/2DMDS/w2.csv','MDS_test/2DMDS/w3.csv','MDS_test/2DMDS/w4.csv','MDS_test/2DMDS/w5.csv','MDS_test/2DMDS/w6.csv']
-path = ['MDS_test/2DMDS/gredient_and_weight/w_special.csv']
-draw_scatter(path,ratio=[4,4],open_color=False,axis = 'off')#test
-path = ['MDS_test/2DMDS/gredient_and_weight/w_special_gredient.csv']
-draw_scatter(path,ratio=[4,4],open_color=False,axis = 'off')
+# path = ['MDS_test/2DMDS/gredient_and_weight/w_special.csv']
+# draw_scatter(path,ratio=[4,4],open_color=False,axis = 'off')#test
+# path = ['MDS_test/2DMDS/gredient_and_weight/w_special_gredient.csv']
+# draw_scatter(path,ratio=[4,4],open_color=False,axis = 'off')
 
 # path = ['MDS_test/w_special.csv']
 # draw_scatter3D(path,ratio=[4,4])#test
 # path = ['MDS_test/w_special_gredient.csv']
 # draw_scatter3D(path,ratio=[4,4])
 
+#
+# path = ['MDS_test/2DMDS/w_error_label_gredient.csv']
+# draw_scatter(path,ratio=[4,4],open_color=False,axis = 'off')
+#
+# path = ['MDS_test/2DMDS/w_error_label.csv','MDS_test/2DMDS/gredient_and_weight/w_special.csv']
+# draw_scatter(path,ratio=[4,4],open_color=True,axis = 'off')
 #test*------------------------------------------
 # path = ['MDS_test/2DMDS/w4.csv','MDS_test/2DMDS/w5.csv','MDS_test/2DMDS/w6.csv']
 # draw_scatter3D(path)
@@ -484,5 +516,37 @@ draw_scatter(path,ratio=[4,4],open_color=False,axis = 'off')
 #               'record/cnn_sl_test/mlabel1/loss.csv']
 # draw(path_array,['zero','zero & one'],xaxis='Training steps',yaxis='loss')
 
+#***********************************************************************Optimizer
+# path_array = ['Final_experiment/repeat_training_limitation/record/extreme_add_adam/dis_limitation_e.csv',
+#               'Final_experiment/repeat_training_limitation/record/extreme_add_sgd/dis_limitation_e.csv']
+#
+# draw(path_array,['Adam','SGD'],xaxis='Training Steps',yaxis='$\Delta S$',dpi = 100,ratio=[4.5,4])
+#
+# path_array = ['Final_experiment/repeat_training_limitation/record/extreme_add_adam/dis_limitation_loss.csv',
+#               'Final_experiment/repeat_training_limitation/record/extreme_add_sgd/dis_limitation_loss.csv']
+#
+# draw(path_array,['Adam','SGD'],xaxis='Training Steps',yaxis='Loss',dpi = 100,ratio=[4.5,4])
+#
+# path_array = ['Final_experiment/repeat_training_limitation/record/extreme_add_adam/dis_limitation_acc.csv',
+#               'Final_experiment/repeat_training_limitation/record/extreme_add_sgd/dis_limitation_acc.csv']
+#
+# draw(path_array,['Adam','SGD'],xaxis='Training Steps',yaxis='Accuracy',dpi = 100,ratio=[4.5,4])
 
+#*********************************************************************learning rate
+# path_array = ['learningrate_test_save/ac.csv']
+# draw(path_array,xaxis='Learning Rate',yaxis='Accuracy',dpi = 100,ratio=[4.5,4],xoffset=[0.01,0.01])
+#
+# path_array = ['learningrate_test_save/loss.csv']
+# draw(path_array,xaxis='Learning Rate',yaxis='Loss',dpi = 100,ratio=[4.5,4],xoffset=[0.01,0.01])
+#
+# path_array = ['learningrate_test_save/dis.csv']
+# draw(path_array,labels=[],xaxis='Learning Rate',yaxis='$\Delta S$',dpi = 100,ratio=[4.5,4],xoffset=[0.01,0.01])
+#*******************************************************************batchsize
+# path_array = ['Final_experiment/batch_size/ac.csv']
+# draw(path_array,xaxis='Batch Size',yaxis='Accuracy',dpi = 100,ratio=[4.5,4],xoffset=[1,1])
 
+# path_array = ['Final_experiment/batch_size/loss.csv']
+# draw(path_array,xaxis='Batch Size',yaxis='Loss',dpi = 100,ratio=[4.5,4],xoffset=[1,1])
+
+# path_array = ['Final_experiment/batch_size/dis.csv']
+# draw(path_array,labels=[],xaxis='Batch Size',yaxis='$\Delta S$',dpi = 100,ratio=[4.5,4],xoffset=[1,1])

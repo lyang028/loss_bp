@@ -19,12 +19,12 @@ import dataReader as dr
 
 
 def test_learning_rate(init_path, output_path):
-    x_train, x_test, y_train, y_test = create_data_set(list(range(10)), 1280)
+    x_train, x_test, y_train, y_test = create_data_set(list(range(10)), 4000)
     dis_set = []
     loss_set = []
     ac_set = []
     loop = 100
-    bs = 128
+    bs = 100
     epochs = 10
     for i in range(loop):
         model = create_network(10*i)

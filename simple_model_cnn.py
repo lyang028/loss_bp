@@ -47,7 +47,7 @@ def create_network():
     model.add(Dense(10, activation='softmax'))
 
     model.compile(loss=keras.losses.categorical_crossentropy,
-                  optimizer=keras.optimizers.Adadelta(),
+                  optimizer=keras.optimizers.Adam(),
                   metrics=['accuracy'])
 
     return model
