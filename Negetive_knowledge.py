@@ -157,6 +157,8 @@ def accuracy(model,path):
     print(accuracy)
 
 
+#test comite
+
 model1 = create_network(channals=1,dense = 32)
 model2 = create_network(channals=2,dense = 32)
 modeltest = create_network(channals=1,dense = 32)
