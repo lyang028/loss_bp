@@ -6,6 +6,7 @@ import matplotlib.pyplot as plt
 import os
 from itertools import combinations, permutations
 from mpl_toolkits.mplot3d import Axes3D
+import matplotlib.ticker as ticker
 
 
 def func(x, a, b):
@@ -75,46 +76,144 @@ def draw_summary():
     plt.legend()
     plt.show()
     plt.close()
+def draw_bar(path_array, labels = [],output_path = 'no',xaxis = 'blank', yaxis = 'blank',ratio = (8.0, 4.0),dpi = 100,xoffset = [1,0],tight_layout = True,font_size = [20,10,10], Xstick = [],Title = 'no',ticker_space = 20,alpha = 1,
+             x_rotation = 0,y_rotation = 0,x_proportion = False):
+    fig, ax = plt.subplots(1, 1)
+    plt.rcParams['figure.figsize'] = ratio
+    plt.rcParams['figure.dpi'] = dpi  # 分辨率
+    plt.xlabel(xaxis, fontsize=font_size[0])
+    plt.ylabel(yaxis, fontsize=font_size[0])
+    plt.xticks(fontsize=font_size[1],rotation = x_rotation)
+    plt.yticks(fontsize=font_size[1],rotation = y_rotation)
+    if not Title == 'no':
+        plt.title(Title,fontsize=font_size[0])
+        index = 0
+    for path in path_array:
+        array = np.array(dr.read_csv(path), dtype=float)[:, 0]
+        if len(Xstick)== 0:
+            x = np.array(range(len(array))) * xoffset[0] + xoffset[1]
+            plt.bar(x, array, label=labels[index],alpha = alpha)
+            # ax = plt.figure().axis()
 
+        else:
+            x = np.array(range(len(array))) * xoffset[0] + xoffset[1]
+            plt.bar(x,array,label=labels[index],tick_label = Xstick,alpha = alpha)
+        index = index + 1
+    ax.xaxis.set_major_locator(ticker.MultipleLocator(ticker_space))
 
-def draw(path_array, labels = [],output_path = 'no',xaxis = 'blank', yaxis = 'blank',range_select = [-1,-1],ratio = (8.0, 4.0),dpi = 100,xoffset = [1,0],tight_layout = True,font_size = [20,10,10]):
+    if x_proportion:
+        def to_percent(temp, position):
+            return str(np.around(100 * temp,decimals=2)) + '%'
+        plt.gca().yaxis.set_major_formatter(ticker.FuncFormatter(to_percent))
+
+    plt.legend(fontsize=font_size[2])
+    if tight_layout:
+        plt.tight_layout()
+    if output_path == 'no':
+        plt.show()
+    else:
+        plt.savefig(output_path)
+
+def draw(path_array, labels = [],output_path = 'no',xaxis = 'blank', yaxis = 'blank',range_select = [-1,-1],ratio = (8.0, 4.0),dpi = 100,xoffset = [1,0],tight_layout = True,font_size = [20,10,10],setXcoord = False, Xcoord = [],Title = 'no',alpha = 1):
     plt.rcParams['figure.figsize'] = ratio
     plt.rcParams['figure.dpi'] = dpi  # 分辨率
     plt.xlabel(xaxis, fontsize=font_size[0])
     plt.ylabel(yaxis, fontsize=font_size[0])
     plt.xticks(fontsize=font_size[1])
     plt.yticks(fontsize=font_size[1])
+    if not Title == 'no':
+        plt.title(Title,fontsize=font_size[0])
     if len(labels) == 0:
         # plt.axes(xscale='log')
         for path in path_array:
             array = np.array(dr.read_csv(path), dtype=float)[:, 0]
-            if range_select[0] == -1:
-                x = np.array(range(len(array)))*xoffset[0]+xoffset[1]
-                plt.plot(x, array)
+            if not setXcoord:
+                if range_select[0] == -1:
+                    x = np.array(range(len(array))) * xoffset[0] + xoffset[1]
+                    plt.plot(x, array)
+                else:
+                    array = array[range_select[0]:range_select[1]]
+                    x = np.array(range(len(array))) * xoffset[0] + xoffset[1]
+                    plt.plot(x, array)
             else:
-                array = array[range_select[0]:range_select[1]]
-                x = np.array(range(len(array))) * xoffset[0] + xoffset[1]
-                plt.plot(x, array)
+                if range_select[0] == -1:
+                    plt.plot(Xcoord, array)
+                else:
+                    array = array[range_select[0]:range_select[1]]
+                    Xcoord = Xcoord[range_select[0]:range_select[1]]
+                    plt.plot(Xcoord, array)
         if tight_layout:
             plt.tight_layout()
         plt.show()
     else:
         index = 0
+        # for path in path_array:
+        #     array = np.array(dr.read_csv(path), dtype=float)[:, 0]
+        #     if range_select[0] == -1:
+        #         plt.plot(range(len(array)), array, label=labels[index])
+        #     else:
+        #         array = array[range_select[0]:range_select[1]]
+        #         plt.plot(range(len(array)), array, label=labels[index])
+        #     index+=1
+        # plt.legend(fontsize = font_size[2])
+        # if tight_layout:
+        #     plt.tight_layout()
+        # if output_path == 'no':
+        #     plt.show()
+        index = 0
         for path in path_array:
             array = np.array(dr.read_csv(path), dtype=float)[:, 0]
-            if range_select[0] == -1:
-                plt.plot(range(len(array)), array, label=labels[index])
+            if not setXcoord:
+                if range_select[0] == -1:
+                    x = np.array(range(len(array))) * xoffset[0] + xoffset[1]
+                    plt.plot(x, array,label = labels[index])
+                else:
+                    array = array[range_select[0]:range_select[1]]
+                    x = np.array(range(len(array))) * xoffset[0] + xoffset[1]
+                    plt.plot(x, array,label = labels[index])
             else:
-                array = array[range_select[0]:range_select[1]]
-                plt.plot(range(len(array)), array, label=labels[index])
-            index+=1
-        plt.legend(fontsize = font_size[2])
+                if range_select[0] == -1:
+                    plt.plot(Xcoord, array,label = labels[index])
+                else:
+                    array = array[range_select[0]:range_select[1]]
+                    Xcoord = Xcoord[range_select[0]:range_select[1]]
+                    plt.plot(Xcoord, array,label = labels[index])
+            index = index+1
+
+        plt.legend(fontsize=font_size[2])
         if tight_layout:
             plt.tight_layout()
         if output_path == 'no':
             plt.show()
         else:
             plt.savefig(output_path)
+
+
+def draw_batch(path, labels = [],output_path = 'no',xaxis = 'blank', yaxis = 'blank',Title = 'blank', hidecoord = False,
+               range_select = [-1,-1],ratio = (8.0, 4.0),dpi = 100,xoffset = [1,0],
+               tight_layout = True,font_size = [20,10,10], xticks = [],yticks = [],alpha = 1):
+    plt.rcParams['figure.figsize'] = ratio
+    plt.rcParams['figure.dpi'] = dpi  # 分辨率
+    plt.xlabel(xaxis, fontsize=font_size[0])
+    plt.ylabel(yaxis, fontsize=font_size[0])
+    plt.xticks(xticks,fontsize=font_size[1])
+    plt.yticks(yticks,fontsize=font_size[1])
+    plt.title(Title,fontsize=font_size[0])
+
+    if tight_layout:
+        plt.tight_layout()
+    array_set = np.array(dr.read_csv(path), dtype=float)
+    for i in range(len(array_set)):
+        array = array_set[i]
+        if not range_select[0] == -1:
+            array = array[range_select[0]:range_select[1]]
+        plt.plot(range(len(array)), array, label=labels[i])
+    # output
+    plt.legend(fontsize=font_size[2])
+    if output_path == 'no':
+        plt.show()
+    else:
+        plt.savefig(output_path)
 def draw_standard(xcoord,ycoord,output_path = 'no',xaxis = 'blank', yaxis = 'blank',ratio = (8,4),tight_layout = False,font_size = [10,10]):
     plt.rcParams['figure.figsize'] = ratio
     x = np.array(dr.read_csv(xcoord), dtype=float)[:, 0]
@@ -288,14 +387,10 @@ def draw_scatter3D(path_set,data_address = 'none',xaxis = 'blank', yaxis = 'blan
     plt.rcParams['figure.figsize'] = ratio
     fig = plt.figure()
     ax = fig.add_subplot(111, projection='3d')
-
-
     for path in path_set:
         array = np.array(dr.read_csv(path), dtype=float)
         if len(range_select) != 0:
             array = array[range_select[0]:range_select[1]]
-
-
         if open_color:
             colors = list(range(len(array)))
             ax.scatter(array[:, 0], array[:, 1], array[:, 2], c=colors)
@@ -323,32 +418,35 @@ def draw_scatter3D(path_set,data_address = 'none',xaxis = 'blank', yaxis = 'blan
     # ax = plt.gca()  # 获取当前图像的坐标轴信息
     # ax.xaxis.get_major_formatter().set_powerlimits((0, 1))  # 将坐标轴的base number设置为一位。
     # ax.yaxis.get_major_formatter().set_powerlimits((0, 1))  # 将坐标轴的base number设置为一位。
+
+
+# draw_scatter3D(['F:/chaotic_similarity/randominit_sameorder/mds3d.csv'])#test
 #figure 1
-path_array = ['record/cnn_mlabel/1/KL_div.csv',
-              'record/cnn_mlabel/2/KL_div.csv',
-              'record/cnn_mlabel/3/KL_div.csv',
-              'record/cnn_mlabel/4/KL_div.csv',
-              'record/cnn_mlabel/5/KL_div.csv',
-              'record/cnn_mlabel/6/KL_div.csv',
-              'record/cnn_mlabel/7/KL_div.csv',
-              'record/cnn_mlabel/8/KL_div.csv',
-              'record/cnn_mlabel/9/KL_div.csv',
-              'record/cnn_standard/KL_div.csv']
+# path_array = ['record/cnn_mlabel/1/KL_div.csv',
+#               'record/cnn_mlabel/2/KL_div.csv',
+#               'record/cnn_mlabel/3/KL_div.csv',
+#               'record/cnn_mlabel/4/KL_div.csv',
+#               'record/cnn_mlabel/5/KL_div.csv',
+#               'record/cnn_mlabel/6/KL_div.csv',
+#               'record/cnn_mlabel/7/KL_div.csv',
+#               'record/cnn_mlabel/8/KL_div.csv',
+#               'record/cnn_mlabel/9/KL_div.csv',
+#               'record/cnn_standard/KL_div.csv']
 # draw(path_array,['$A_0$','$A_1$','$A_2$','$A_3$','$A_4$','$A_5$','$A_6$','$A_7$','$A_8$','$A_9$'],xaxis='Training Steps',yaxis='$\Delta S$',ratio=[12,4],tight_layout=True,font_size=[20,10,10])
 #figure 2
 # extract_entropydecrease(path_array,'data_evaluation_minst/len_mnist.csv',xaxis='Len(D)',yaxis='$\Delta S$')
 # extract_entropydecrease(path_array,'data_evaluation_minst/multilabel_RI.csv',xaxis='RI',yaxis='$\Delta S$')
 #figure 3
-path_array = ['record/cnn_mix_all/0/KL_div.csv',
-              'record/cnn_mix_all/1/KL_div.csv',
-              'record/cnn_mix_all/2/KL_div.csv',
-              'record/cnn_mix_all/3/KL_div.csv',
-              'record/cnn_mix_all/4/KL_div.csv',
-              'record/cnn_mix_all/5/KL_div.csv',
-              'record/cnn_mix_all/6/KL_div.csv',
-              'record/cnn_mix_all/7/KL_div.csv',
-              'record/cnn_mix_all/8/KL_div.csv',
-              'record/cnn_mix_all/9/KL_div.csv']
+# path_array = ['record/cnn_mix_all/0/KL_div.csv',
+#               'record/cnn_mix_all/1/KL_div.csv',
+#               'record/cnn_mix_all/2/KL_div.csv',
+#               'record/cnn_mix_all/3/KL_div.csv',
+#               'record/cnn_mix_all/4/KL_div.csv',
+#               'record/cnn_mix_all/5/KL_div.csv',
+#               'record/cnn_mix_all/6/KL_div.csv',
+#               'record/cnn_mix_all/7/KL_div.csv',
+#               'record/cnn_mix_all/8/KL_div.csv',
+#               'record/cnn_mix_all/9/KL_div.csv']
 # extract_entropydecrease(path_array,'data_evaluation_minst/mixed_label_RI.csv',xaxis='RI',yaxis='$\Delta S$',sort='Yes')
 # draw_entropy_bar(path_array,xaxis='Index',yaxis='$\Delta S$',ylimitaion= [0.0000001,0.000009],ratio=[4.5,4])
 # draw_entropy_bar([],data_address='data_evaluation_minst/mixed_label_RI.csv',xaxis='Index',yaxis='RI',ylimitaion=(400,460),ratio=[4.5,4])
@@ -440,15 +538,34 @@ path_array = ['record/cnn_mix_all/0/KL_div.csv',
 #               'record/error_label70/loss.csv','record/error_label80/loss.csv','record/error_label90/loss.csv']
 # labels = ['$A_{10}$','$A_{20}$','$A_{30}$','$A_{40}$','$A_{50}$','$A_{60}$','$A_{70}$','$A_{80}$','$A_{90}$']
 # draw(path_array,labels=labels,xaxis='Training steps',yaxis='$Loss$',ratio=[8,4],dpi = 100)
+
+# path_array = ['record/error_label0/loss.csv','record/error_label10/loss.csv','record/error_label20/loss.csv','record/error_label30/loss.csv',
+#               'record/error_label40/loss.csv','record/error_label50/loss.csv','record/error_label60/loss.csv',
+#               'record/error_label70/loss.csv','record/error_label80/loss.csv','record/error_label90/loss.csv','record/error_label100/loss.csv']
+# labels = ['$A_{10}$','$A_{10}$','$A_{20}$','$A_{30}$','$A_{40}$','$A_{50}$','$A_{60}$','$A_{70}$','$A_{80}$','$A_{90}$','$A_{100}$']
+# draw(path_array,labels=labels,xaxis='Training steps',yaxis='$Loss$',ratio=[8,4],dpi = 100)
+# #
+# path_array = ['record/error_label0/acc.csv','record/error_label10/acc.csv','record/error_label20/acc.csv','record/error_label30/acc.csv',
+#               'record/error_label40/acc.csv','record/error_label50/acc.csv','record/error_label60/acc.csv',
+#               'record/error_label70/acc.csv','record/error_label80/acc.csv','record/error_label90/acc.csv','record/error_label100/acc.csv']
+# labels = ['$A_{0}$','$A_{10}$','$A_{20}$','$A_{30}$','$A_{40}$','$A_{50}$','$A_{60}$','$A_{70}$','$A_{80}$','$A_{90}$','$A_{100}$']
+# draw(path_array,labels=labels,xaxis='Training steps',yaxis='$Accuracy$',ratio=[8,4],dpi = 100)
+# #
+# path_array = ['record/error_label0/E_dis.csv','record/error_label10/E_dis.csv','record/error_label20/E_dis.csv','record/error_label30/E_dis.csv',
+#               'record/error_label40/E_dis.csv','record/error_label50/E_dis.csv','record/error_label60/E_dis.csv',
+#               'record/error_label70/E_dis.csv','record/error_label80/E_dis.csv','record/error_label90/E_dis.csv','record/error_label100/E_dis.csv']
+# labels = ['$A_{0}$','$A_{10}$','$A_{20}$','$A_{30}$','$A_{40}$','$A_{50}$','$A_{60}$','$A_{70}$','$A_{80}$','$A_{90}$','$A_{100}$']
+# draw(path_array,labels=labels,xaxis='Training steps',yaxis='$Distance$',Title='Impact of Label Corruption',ratio=[8,4],dpi = 100)
+
 #
 # path_array = ['record/cnn_mlabel/1/KL_div.csv',
 #               'record/cnn_mlabel/2/KL_div.csv']
 # draw(path_array,['$A_0$','$A_1$'],xaxis='Training steps',yaxis='$\Delta S$')
 
 #figure********************************* numerical verify
-draw_contour('data_evaluation_minst/data_center_test/mark_C/0/RI.csv','data_evaluation_minst/data_center_test/mark_C/0/test_center_w.csv',
-             'data_evaluation_minst/data_center_test/mark_C/repaint/')
-#figure********************************************
+# draw_contour('data_evaluation_minst/data_center_test/mark_C/0/RI.csv','data_evaluation_minst/data_center_test/mark_C/0/test_center_w.csv',
+#              'data_evaluation_minst/data_center_test/mark_C/repaint/')
+# #figure********************************************
 # draw_scatter3D('MDS_test/output.csv')#test
 
 # draw_scatter('MDS_test/output2.csv',axis=[-2,1,-2,2.6],range_select=[0,30])#test
@@ -550,3 +667,49 @@ draw_contour('data_evaluation_minst/data_center_test/mark_C/0/RI.csv','data_eval
 
 # path_array = ['Final_experiment/batch_size/dis.csv']
 # draw(path_array,labels=[],xaxis='Batch Size',yaxis='$\Delta S$',dpi = 100,ratio=[4.5,4],xoffset=[1,1])
+
+
+#funciton analysis
+# path_array = ['QMCM_simulation_two_does/mean.csv','QMCM_simulation_two_does/mean_support.csv']
+# draw(path_array,xaxis='Subset Scale Propotion',xoffset=[0.1,0],yaxis='Mean Distance',labels=['Universe','Support'],setXcoord=True,Xcoord=np.array(range(999))*0.1)
+# path_array = ['QMCM_simulation_two_does/std.csv','QMCM_simulation_two_does/std_support.csv']
+# draw(path_array,xaxis='Subset Scale Propotion',xoffset=[0.1,0],yaxis='Standrad Difference',labels=['Universe','Support'],setXcoord=True,Xcoord=np.array(range(999))*0.1)
+
+# path_array = ['QMCM_simulation_two_does/mean.csv']
+# draw(path_array,xaxis='Subset Scale Propotion',yaxis='Mean Distance',setXcoord=True,Xcoord=np.array(range(999))*0.1,Title='Mean of Universe')
+# path_array = ['QMCM_simulation_two_does/std.csv']
+# draw(path_array,xaxis='Subset Scale Propotion',yaxis='Standrad Difference',setXcoord=True,Xcoord=np.array(range(999))*0.1,Title= 'Standard Difference of Universe')
+#
+# path_array = ['QMCM_simulation_two_does/mean_support.csv']
+# draw(path_array,xaxis='Subset Scale Propotion',yaxis='Mean Distance',setXcoord=True,Xcoord=np.array(range(999))*0.1, Title= 'Mean of Support')
+# path_array = ['QMCM_simulation_two_does/std_support.csv']
+# draw(path_array,xaxis='Subset Scale Propotion',yaxis='Standrad Difference',setXcoord=True,Xcoord=np.array(range(999))*0.1, Title='Standard Difference of Support')
+
+# path_array = ['QMCM_simulation/distribute/KL_div.csv']
+# draw(path_array,xaxis='Subset Scale Proportion',yaxis='KL Divergence',Title='Curve of KL Divergence',setXcoord=True,Xcoord=np.array(range(999))*0.1)
+
+# path_array = ['QMCM_simulation_one_does/distribute/distribution/4.csv','QMCM_simulation_one_does/distribute/normal_distribution/4.csv']
+# draw(path_array,xaxis='Subset Scale Propotion',yaxis='KL Divergence',labels=['dis','normal'],Title='Curve of KL Divergence')
+#
+#
+# path_array = ['QMCM_simulation/distribute/distribution/6.csv','QMCM_simulation/distribute/normal_distribution/6.csv']
+# draw(path_array,xaxis='Subset Scale Proportion',yaxis='KL Divergence',labels=['dis','normal'],Title='Curve of KL Divergence')
+
+# path_array = ['QMCM_simulation/distribute/distribution/10.csv','QMCM_simulation/distribute/normal_distribution/10.csv']
+# Xaxis = np.around(np.array(dr.read_csv('QMCM_simulation/distribute/fanwei/10.csv'),dtype=float)[:,0],decimals=3)
+# draw_bar(path_array,xaxis='Distance',yaxis='Relative Frequency',labels=['Shortest Distance Distribution','Normal Distribution'],Title='Distributions Comparation',Xstick=Xaxis,alpha=0.5,x_rotation=45,x_proportion=True)
+
+# draw_batch('figures/E_div.csv',labels=['20%','40%','60%','80%','100%'],Title='TF MNIST Demo Verification',xaxis='Training Steps',yaxis='Distance')
+# draw_batch('figures/alex_labelclassification_dis.csv',labels=['20%','40%','60%','80%','100%'],Title='AlexNet Verification',xaxis='Training Steps',yaxis='Distance')
+# draw_batch('figures/googlenet_classification.csv',labels=['20%','40%','60%','80%','100%'],Title='GoogleNet Verification',xaxis='Training Steps',yaxis='Distance')
+# draw_batch('figures/cnn_labelclassificiton_distance - cnn_labelclassificiton_distance (1).csv',labels=['20%','40%','60%','80%','100%'],Title='TF CNN Demo Verification',xaxis='Training Steps',yaxis='Distance')
+# draw_batch('figures/resnet_dis(1) - resnet_dis(1).csv',labels=['20%','40%','60%','80%','100%'],Title='ResNet Verification',xaxis='Training Steps',yaxis='Distance')
+# draw_batch('figures/vgg_classification.csv',labels=['20%','40%','60%','80%','100%'],Title='VGG Verification',xaxis='Training Steps',yaxis='Distance')
+# draw_batch('figures/E_div.csv',labels=['20%','40%','60%','80%','100%'],Title='TF MNIST Demo Verification',xaxis='Training Steps',yaxis='Distance')
+# draw_batch('figures/yolov3_distance_label.csv',labels=['20%','40%','60%','80%','100%'],Title='Yolo v3 Verification',xaxis='Training Steps',yaxis='Distance')
+
+path_array = ['radius_test/acc_radius.csv']
+draw(path_array,Xcoord=np.array(range(20))*0.01,setXcoord=True,ratio=[4.5,4],xaxis='Sigma',yaxis='Accuracy')
+
+path_array = ['radius_test/loss_radius.csv']
+draw(path_array,Xcoord=np.array(range(20))*0.01,setXcoord=True,ratio=[4.5,4],xaxis='Sigma',yaxis='Loss')

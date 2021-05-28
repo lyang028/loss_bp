@@ -6,6 +6,7 @@ from simple_model_cnn import create_data_set
 from simple_model_cnn import create_network
 from KL_div import resize_model
 import matplotlib.pyplot as plt
+from mpl_toolkits.mplot3d import Axes3D
 import random
 import numpy as np
 import dataReader as dr
@@ -75,6 +76,32 @@ def mds_analysis(model,path_set,opath_set,dim = 2):
         pre_len+=length_set[i]
     # print(X_transformed)
 
+
+def mds_single_analysis(model,path_set,opath,dim = 2):
+    weight_set = []
+    for path in path_set:
+        print(path)
+        model.load_weights(path)
+        vcurrent = resize_model(model.get_weights())
+        weight_set.append(vcurrent)
+
+
+    weight_set = np.array(weight_set, dtype=float)
+    embedding = MDS(n_components=dim)
+    X_transformed = embedding.fit_transform(weight_set)
+    dr.save_data(X_transformed, opath)
+    if dim == 3:
+        plt.rcParams['figure.figsize'] = [4,4]
+        fig = plt.figure()
+        ax = fig.add_subplot(111, projection='3d')
+        ax.scatter(X_transformed[:, 0], X_transformed[:, 1], X_transformed[:, 2])
+        plt.show()
+    elif dim == 2:
+        plt.scatter(X_transformed[:, 0], X_transformed[:, 1])
+        plt.show()
+
+
+
 # def get_feedback(model,output_weight):
 
 # path = 'MDS_test/weights'
@@ -95,9 +122,9 @@ def mds_analysis(model,path_set,opath_set,dim = 2):
 # path = ['MDS_test/weights']
 # output_path = ['MDS_test/w_special']
 # mds_analysis(create_network(),path,output_path,dim=3)
-path = ['MDS_test/weights','MDS_test/error_label_weights']
-output_path = ['MDS_test/w1','MDS_test/w_error_label']
-mds_analysis(create_network(),path,output_path,dim=2)
+# path = ['MDS_test/weights','MDS_test/error_label_weights']
+# output_path = ['MDS_test/w1','MDS_test/w_error_label']
+# mds_analysis(create_network(),path,output_path,dim=2)
 
 
 # model = create_network()

@@ -1,8 +1,9 @@
-import cnn_model as cm
+import cnn_check_model as cm
 import numpy as np
 import os
 import random
 import dataReader as dr
+import keras
 from keras.datasets import mnist, fashion_mnist
 
 index = []
@@ -72,28 +73,20 @@ def group_training():
                 cm.model.save(name)
                 print(name)
 
-def single_training():
-    file_address = input('adress:')
+def single_training(file_address, standard_init = 'Yes',standard_training = 'Yes'):
     x_train = cm.x_train
     y_train = cm.y_train
-
-
     if not os.path.exists(file_address):  # 判断是否存在文件夹如果不存在则创建为文件夹
         os.makedirs(file_address)  # makedirs 创建文件时如果路径不存在会创建这个路径
         os.makedirs('record/' + file_address)
         print
         "---  new folder...  ---"
-        print
-        "---  OK  ---"
     else:
         print
         "---  There is this folder!  ---"
-    standard_init = input('need standard init?')
     if standard_init == 'Yes':
         print('standard_init using')
         cm.model.load_weights('standard_init.h5')
-    standard_training = input('standard order')
-
     if standard_training == 'Yes':
         training_order = np.array(dr.read_csv('standard_order.csv'),dtype='int32')[:,0]
     else:
@@ -110,46 +103,6 @@ def single_training():
             name = file_address + '/' + str(epoch) + 'E' + str(b) + 'b.h5'
             cm.model.save(name)
             print(name)
-
-    def single_training():
-        file_address = input('adress:')
-        x_train = cm.x_train
-        y_train = cm.y_train
-
-        if not os.path.exists(file_address):  # 判断是否存在文件夹如果不存在则创建为文件夹
-            os.makedirs(file_address)  # makedirs 创建文件时如果路径不存在会创建这个路径
-            os.makedirs('record/' + file_address)
-            print
-            "---  new folder...  ---"
-            print
-            "---  OK  ---"
-        else:
-            print
-            "---  There is this folder!  ---"
-        standard_init = input('need standard init?')
-        if standard_init == 'Yes':
-            print('standard_init using')
-            cm.model.load_weights('standard_init.h5')
-        standard_training = input('standard order')
-
-        if standard_training == 'Yes':
-            training_order = np.array(dr.read_csv('standard_order.csv'), dtype='int32')[:, 0]
-        else:
-            length = x_train.shape[0]
-            training_order = list(range(length))
-            random.shuffle(training_order)
-        print('training_config:', file_address, 'standard training order:', training_order, 'standard init:',
-              standard_init)
-        for epoch in range(cm.epochs):
-            for b in range(x_train.shape[0] // cm.batch_size):
-                idx = training_order[b * cm.batch_size:(b + 1) * cm.batch_size]
-                x = x_train[idx]
-                y = y_train[idx]
-                l = cm.model.train_on_batch(x, y)
-                name = file_address + '/' + str(epoch) + 'E' + str(b) + 'b.h5'
-                cm.model.save(name)
-                print(name)
-
     # for epoch in range(cm.epochs):
     #     for b in range(x_train.shape[0] // cm.batch_size):
     #         idx = np.random.choice(x_train.shape[0], cm.batch_size)
@@ -208,7 +161,7 @@ def error_onehotlabel_rate(a,b):
     return s/len(a)
 def onehot_to_index(a):
     return [np.where(r==1)[0][0] for r in a]
-def error_label_shift(error_set, standard_init = 'Yes', standard_training = 'Yes'):
+def error_label_shift(error_set, standard_init = 'Yes', standard_training = 'Yes',gaps = 0):
     for error in error_set:
         x_train = cm.x_train
         y_train = cm.y_train
@@ -225,44 +178,43 @@ def error_label_shift(error_set, standard_init = 'Yes', standard_training = 'Yes
             "---  There is this folder!  ---"
         if standard_init == 'Yes':
             print('standard_init using')
-            cm.model.load_weights('standard_init.h5')
+            cm.model.load_weights('cnn_check_standard_init.h5')
         if standard_training == 'Yes':
-            training_order = np.array(dr.read_csv('standard_order.csv'), dtype='int32')[:, 0]
+            training_order = np.array(dr.read_csv('cifar10_training_order.csv'), dtype='int32')[:, 0]
         else:
             length = x_train.shape[0]
             training_order = list(range(length))
             random.shuffle(training_order)
+            dr.save_data(training_order,'templete_training_order.csv')
         print('training_config:', file_address, 'standard training order:', training_order, 'standard init:',
               standard_init)
 
-
+        #global_shuffle(array, rate):
+        error_rate = error/100
+        y_train_ori = np.copy(y_train)
+        error_array = y_train[:int(len(y_train)*error_rate)]
+        random.shuffle(error_array)
+        y_train[:int(len(y_train)*error_rate)] = error_array
+        print('global error rate:'+str(error_onehotlabel_rate(y_train, y_train_ori)))
+        gap = 0
         for epoch in range(cm.epochs):
             for b in range(x_train.shape[0] // cm.batch_size):
                 idx = training_order[b * cm.batch_size:(b + 1) * cm.batch_size]
                 x = x_train[idx]
                 y = y_train[idx]
-                yori = np.copy(y)
-                yori_index = onehot_to_index(y)
-                gap = int(100/error)
-                idr = (np.array(range(cm.batch_size))%gap == 0)
-                y_error = y[idr]
-                random.shuffle(y_error)
-                y[idr] = y_error
-                y_index = onehot_to_index(y)
-                print(sum(np.array(yori_index) == np.array(y_index))/len(y_index))
-                print(error_onehotlabel_rate(y,yori))
-                l = cm.model.train_on_batch(x, y)
-                name = file_address + '/' + str(epoch) + 'E' + str(b) + 'b.h5'
-                cm.model.save(name)
-                print(name)
+                loss ,acc = cm.model.train_on_batch(x, y)
+                print('local error rate:' + str(error_onehotlabel_rate(y, y_train_ori[idx])))
+                print('loss: '+str(loss)+' acc: '+str(acc))
+                if gap == gaps:
+                    name = file_address + '/' + str(epoch) + 'E' + str(b) + 'b.h5'
+                    cm.model.save(name)
+                    print(name)
+                    gap = 0
+                else:
+                    gap+= 1
 
-
-
-def multi_label(batches = 468,select_range = [],gaps = 0):
-    if len(select_range) == 0:
-        select_range = range[11]
-
-    for i in select_range:
+def multi_label():
+    for i in range(10):
         file_address = 'cnn_mlabel' + str(i)
         idx = (cm.y_index_train < i)
         x_train = cm.x_train[idx]
@@ -285,10 +237,7 @@ def multi_label(batches = 468,select_range = [],gaps = 0):
         training_order = list(range(length))
         random.shuffle(training_order)
 
-        count = 0
-        end = False
-        save_mark = 0
-        for epoch in range(1000):
+        for epoch in range(cm.epochs):
             for b in range(x_train.shape[0] // cm.batch_size):
                 idx = training_order[b * cm.batch_size:(b + 1) * cm.batch_size]
                 x = x_train[idx]
@@ -296,23 +245,9 @@ def multi_label(batches = 468,select_range = [],gaps = 0):
                 index.append(idx)
                 label.append(y)
                 l = cm.model.train_on_batch(x, y)
-                if save_mark<gaps:
-                    save_mark+=1
-                else:
-                    save_mark = 0
-                    name = file_address + '/' + str(count) + '.h5'
-                    cm.model.save(name)
-                    print(name)
-
-                count+=1
-                if count>=batches:
-                    end = True
-                    break
-            if end:
-                break
-
-
-
+                name = file_address + '/' + str(epoch) + 'E' + str(b) + 'b.h5'
+                cm.model.save(name)
+                print(name)
 
 def helf_half_combination(file_address,si1,si2,test_length = 5000,standard_init = 'Yes'):
     idx1 = (cm.y_index_train == si1)
@@ -459,6 +394,7 @@ def mixed_combination(file_address,label_set, test_length = 5000, standard_init 
 def init_weights(output_path):
     cm.model.save_weights(output_path)
     cm.model.load_weights(output_path)
+
 def distance_exp1(input_path,output_path):
     x_train = cm.x_train
     y_train = cm.y_train
@@ -477,11 +413,10 @@ def distance_exp1(input_path,output_path):
                  verbose=1,
                  validation_data=(cm.x_test, cm.y_test))
         cm.model.save(output_path +'/' + file)
-
 def tensorboard_vis():
     import datetime
     import tensorflow as tf
-    log_dir = "logs/fit/cnn_" + datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
+    log_dir = "logs/fit/cnn_cifar_" + datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
     tensorboard_callback = tf.keras.callbacks.TensorBoard(log_dir=log_dir, histogram_freq=1)
 
     cm.model.fit(x=cm.x_train,
@@ -489,28 +424,30 @@ def tensorboard_vis():
               epochs=1,
               validation_data=(cm.x_test, cm.y_test),
               callbacks=[tensorboard_callback])
-# distance_exp1('cnn_mnist_exp1/begin','cnn_mnist_exp1/end')
-# init_weights('cnn_mnist_exp1/begin/19.h5')
+
+# init_weights('cnn_cifar_exp1/begin/16.h5')
+# x_train = cm.x_train
+# y_train = cm.y_train
+#
+# cm.model.load_weights('cnn_cifar_exp1/begin/16.h5')
+# cm.model.fit(x_train, y_train,
+#                  batch_size=cm.batch_size,
+#                  epochs=cm.epochs,
+#                  verbose=1,
+#                  validation_data=(cm.x_test, cm.y_test))
+# cm.model.save('cnn_cifar_exp1/end/16.h5')
+# distance_exp1('cnn_cifar_exp1/begin','cnn_cifar_exp1/end')
 
 
-# single_training()
 
-# error_label_shift([60,70])
+tensorboard_vis()
+
+# error_label_shift([0,10,20,30,40,50,60,70,80,90,100],gaps=10)
+# error_label_shift([10,70])
 # error_label_randomize()
-# multi_label(batches=468,select_range=[2,4,6,8,10],gaps=10)
+# multi_label()
 # single_label_training('cnn_sl_0',0)
 
 # helf_half_combination('cnn_2_0_combine',0,2)
 
 # mixed_combination('cnn_mix_all',[0,1,2,3,4,5,6,7,8,9])
-
-# cm.model.load_weights('cnn_mnist_exp1/begin/0.h5')
-# cm.model.fit(cm.x_train, cm.y_train,
-#                  batch_size=cm.batch_size,
-#                  epochs=1,
-#                  verbose=1,
-#                  validation_data=(cm.x_test, cm.y_test))
-# cm.model.save('test_train.h5')
-
-#tensorfboard
-# tensorboard_vis()

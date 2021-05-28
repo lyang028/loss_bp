@@ -1,5 +1,5 @@
 import os
-import cnn_model as cm
+import cnn_check_model as cm
 import scipy.stats as ss
 import scipy
 import numpy as np
@@ -10,10 +10,6 @@ import KL_div as kl
 import keras
 from keras.datasets import mnist
 
-
-def sort_key_index(e):
-    epoch_str = e.split('.h5')
-    return int(epoch_str[0])
 def sort_key(e):
     epoch_str = e.split('E')
     batch_str = epoch_str[1].split('b')
@@ -101,38 +97,6 @@ def normalize(array,ratio):
     ntarget = [a * ratio for a in array]
     ntarget = [a / sumv for a in ntarget]
     return ntarget
-
-def create_data_set(labels = [0,1,2,3,4,5,6,7,8,9,10],amount = 4000):
-    # input image dimensions
-    # the data, split between train and test sets
-    (x_train, y_index_train), (x_test, y_index_test) = mnist.load_data()
-    x_train = x_train.reshape(x_train.shape[0], 28, 28, 1)
-    x_test = x_test.reshape(x_test.shape[0], 28, 28, 1)
-    x_train = x_train.astype('float32')
-    x_test = x_test.astype('float32')
-    x_train /= 255
-    x_test /= 255
-
-    x_train_out = []
-    y_index_train_out = []
-    x_test_out = []
-    y_index_test_out = []
-    for i in labels:
-        idx = y_index_train == i
-        x_sub = x_train[idx]
-        y_sub = y_index_train[idx]
-        x_train_out.extend(x_sub[:amount])
-        y_index_train_out.extend(y_sub[:amount])
-
-        idx = y_index_test == i
-        x_testsub = x_test[idx]
-        y_testsub = y_index_test[idx]
-        x_test_out.extend(x_testsub[:amount])
-        y_index_test_out.extend(y_testsub[:amount])
-
-    y_train = keras.utils.to_categorical(y_index_train_out, 10)
-    y_test = keras.utils.to_categorical(y_index_test_out, 10)
-    return  np.array(x_train_out),np.array(x_test_out),y_train,y_test
 
 
 def cosine_similarity(x, y, norm=False):
@@ -576,13 +540,12 @@ def compare_two_sequence(path1,path2,metric,metric_name):
         distance.append(dis)
     dr.save_data(distance,file_address+'/'+metric_name+'.csv')
 
-def analyse_sequence(path_set, target_path_set,metric, metric_name,output_path_set = [],test_range = [],keyfunc = sort_key):
-
+def analyse_sequence(path_set, target_path_set,metric, metric_name,output_path_set = [],test_range = []):
     for i in range(len(path_set)):
         if len(test_range) == 0:
-            x_train, x_test, y_train, y_test = create_data_set()
+            x_train, x_test, y_train, y_test = cm.create_data_set()
         else:
-            x_train, x_test, y_train, y_test = create_data_set(range(test_range[i][0]),test_range[i][1])
+            x_train, x_test, y_train, y_test = cm.create_data_set(range(test_range[i][0]),test_range[i][1])
         path = path_set[i]
         target_path = target_path_set[i]
         if len(output_path_set) == 0:
@@ -591,7 +554,7 @@ def analyse_sequence(path_set, target_path_set,metric, metric_name,output_path_s
             file_address = output_path_set[i]
 
         file_ls1 = os.listdir(path)
-        file_ls1.sort(key=keyfunc)
+        file_ls1.sort(key=sort_key)
 
         distance = []
         for i in range(len(metric)):
@@ -632,69 +595,6 @@ def analyse_sequence(path_set, target_path_set,metric, metric_name,output_path_s
         plt.savefig(file_address + '/loss.png')
         plt.close()
 
-def analyse_sequence(path_set, target_path_set,metric, metric_name,output_path_set = [],test_range = [],keyfunc = sort_key,distance = True, Loss_Accuracy = True,show_fig = True):
-    output_dis = []
-    output_loss = []
-    output_acc = []
-    for i in range(len(metric)):
-        output_dis.append([])
-    for i in range(len(path_set)):
-        if len(test_range) == 0:
-            x_train, x_test, y_train, y_test = create_data_set()
-        else:
-            x_train, x_test, y_train, y_test = create_data_set(range(test_range[i][0]),test_range[i][1])
-        path = path_set[i]
-        target_path = target_path_set[i]
-
-        file_ls1 = os.listdir(path)
-        file_ls1.sort(key=keyfunc)
-
-        distance = []
-        for i in range(len(metric)):
-            distance.append([])
-        loss_set = []
-        acc_set = []
-        cm.model.load_weights(target_path)
-        targetv = resize_model(cm.model.get_weights())
-        for file in file_ls1:
-            extend = os.path.splitext(file)[-1][1:]
-            if (extend != 'h5'):
-                continue
-
-            cm.model.load_weights(path + '/' + file)
-            vcurrent1 = resize_model(cm.model.get_weights())
-            if distance:
-                for i in range(len(metric)):
-                    dis = metric[i](vcurrent1, targetv)
-                    distance[i].append(dis)
-                    print(metric_name[i] + ' ' + str(dis))
-            if Loss_Accuracy:
-                loss, acc = cm.model.evaluate(x_test, y_test)
-                loss_set.append(loss)
-                acc_set.append(acc)
-                print('loss'+' '+str(loss)+'   acc'+' '+str(acc))
-        for i in range(len(metric)):
-            output_dis[i].append(distance[i])
-        output_acc.append(acc_set)
-        output_loss.append(loss_set)
-    # output part
-    if len(output_path_set) == 0:
-        file_address = 'record/' + path
-    else:
-        file_address = output_path_set[0]
-
-    for i in range(len(metric)):
-        dr.save_data(output_dis[i],file_address+'/'+metric_name[i]+'.csv')
-
-    if Loss_Accuracy:
-        dr.save_data(output_acc,file_address+'/acc.csv')
-        dr.save_data(output_loss,file_address+'loss.csv')
-
-def compare_two_model_batch(begin_path, end_path, out_path,measure):
-    output = []
-    for i in range(len(begin_path)):
-        output.append(compare_two_model(begin_path[i],end_path[i],measure))
-    dr.save_data(output,out_path)
 def compare_two_model(path1,path2,metric):
     cm.model.load_weights(path1)
     v1 = resize_model(cm.model.get_weights())
@@ -706,8 +606,14 @@ def compare_two_model(path1,path2,metric):
     print(dis)
     return dis
 
+def compare_two_model_batch(begin_path, end_path, out_path,measure):
+    output = []
+    for i in range(len(begin_path)):
+        output.append(compare_two_model(begin_path[i],end_path[i],measure))
+    dr.save_data(output,out_path)
 
-def compare_two_sequence_accuracy(path1,path2):
+
+def compare_two_sequence_accuracy(path1,path2, save = True):
     file_address = 'record/' + path1 + '_' + path2
     os.makedirs(file_address)
     file_ls1 = os.listdir(path1)
@@ -729,24 +635,26 @@ def compare_two_sequence_accuracy(path1,path2):
 
         cm.model.load_weights(path1 + '/' + file)
         loss1, accuracy1 = accuracy(cm.model)
-        print(loss1, ' ', accuracy1)
+        print('loss_1: ',loss1, 'acc_1: ', accuracy1)
         cm.model.load_weights(path2 + '/' + file)
         loss2, accuracy2 = accuracy(cm.model)
-        print(loss2, ' ', accuracy2)
+        print('loss_2: ',loss2, ' acc_2:', accuracy2)
         loss_1.append(loss1)
         loss_2.append(loss2)
         ac_1.append(accuracy1)
         ac_2.append(accuracy2)
-    dr.save_data(ac_1, file_address + '/accuracy_1.csv')
-    dr.save_data(ac_2, file_address + '/accuracy_2.csv')
-    dr.save_data(loss_1, file_address + '/loss1.csv')
-    dr.save_data(loss_2, file_address + '/loss2.csv')
+    if save:
+        dr.save_data(ac_1, file_address + '/accuracy_1.csv')
+        dr.save_data(ac_2, file_address + '/accuracy_2.csv')
+        dr.save_data(loss_1, file_address + '/loss1.csv')
+        dr.save_data(loss_2, file_address + '/loss2.csv')
+
 
 def single_weight_test(path_init,path_end,test_set = [-1]):
-    dis = compare_two_model(path_init,path_end,kl.KL_div)
+    compare_two_model(path_init,path_end,kl.E_dis)
     loss,ac = accuracy(cm.model,test_set)
-    print(dis)
-    print(loss,ac)
+    # print(dis)
+    print('loss: ',loss, ' acc:', ac)
 
 # group_test(10)
 # single_test()
@@ -807,41 +715,42 @@ def single_weight_test(path_init,path_end,test_set = [-1]):
 # metric_name = ['KL_div','KL_div_sigmoid','E_dis']
 # analyse_sequence(path,tpath,metric,metric_name,output_path_set=opath)
 
+# path = ['error_label0','error_label10','error_label20','error_label30','error_label40','error_label50',
+#         'error_label60','error_label70','error_label80','error_label90','error_label100']
+# tpath = ['error_label0/9E383b.h5','error_label10/9E383b.h5','error_label20/9E383b.h5','error_label30/9E383b.h5',
+#          'error_label40/9E383b.h5','error_label50/9E383b.h5','error_label60/9E383b.h5',
+#          'error_label70/9E383b.h5','error_label80/9E383b.h5','error_label90/9E383b.h5',
+#          'error_label100/9E383b.h5']
+# opath = ['record/error_label0','record/error_label10','record/error_label20','record/error_label30','record/error_label40',
+#          'record/error_label50','record/error_label60','record/error_label70','record/error_label80',
+#          'record/error_label90','record/error_label100']
+# metric = [kl.E_dis]
+# metric_name = ['E_dis']
+# analyse_sequence(path,tpath,metric,metric_name,output_path_set=opath)
+
+
 # print(compare_two_model('error_label10/0E0b.h5','error_label10/0E467b.h5',kl.E_dis))
 # print(compare_two_model('error_label20/0E0b.h5','error_label20/0E467b.h5',kl.E_dis))
 # print(compare_two_model('error_label60/0E0b.h5','error_label60/0E467b.h5',kl.E_dis))
 # print(compare_two_model('error_label70/0E0b.h5','error_label70/0E467b.h5',kl.E_dis))
+
+# compare_two_sequence_accuracy('error_label10','error_label20')
+# compare_two_sequence_accuracy('error_label60','error_label70')
+
+# import cnn_model as cm
+# single_weight_test('error_label0/0E0b.h5','error_label0/9E383b.h5')
+# single_weight_test('error_label1/0E10b.h5','error_label1/9E383b.h5')
+# single_weight_test('error_label10/0E10b.h5','error_label10/9E383b.h5')
+# single_weight_test('error_label70/0E10b.h5','error_label70/9E383b.h5')
 # single_weight_test('standard_init.h5','cnn_sl_0/0E45b.h5',test_set=[0])
 
-# begin_path = ['cnn_mnist_exp1/begin/0.h5','cnn_mnist_exp1/begin/1.h5','cnn_mnist_exp1/begin/2.h5','cnn_mnist_exp1/begin/3.h5','cnn_mnist_exp1/begin/4.h5',
-#               'cnn_mnist_exp1/begin/5.h5','cnn_mnist_exp1/begin/6.h5', 'cnn_mnist_exp1/begin/7.h5','cnn_mnist_exp1/begin/8.h5','cnn_mnist_exp1/begin/9.h5',
-#               'cnn_mnist_exp1/begin/10.h5','cnn_mnist_exp1/begin/11.h5','cnn_mnist_exp1/begin/12.h5','cnn_mnist_exp1/begin/13.h5','cnn_mnist_exp1/begin/14.h5',
-#               'cnn_mnist_exp1/begin/15.h5','cnn_mnist_exp1/begin/16.h5','cnn_mnist_exp1/begin/17.h5','cnn_mnist_exp1/begin/18.h5','cnn_mnist_exp1/begin/19.h5']
-# end_path = ['cnn_mnist_exp1/end/0.h5','cnn_mnist_exp1/end/1.h5','cnn_mnist_exp1/end/2.h5','cnn_mnist_exp1/end/3.h5','cnn_mnist_exp1/end/4.h5',
-#               'cnn_mnist_exp1/end/5.h5','cnn_mnist_exp1/end/6.h5', 'cnn_mnist_exp1/end/7.h5','cnn_mnist_exp1/end/8.h5','cnn_mnist_exp1/end/9.h5',
-#               'cnn_mnist_exp1/end/10.h5','cnn_mnist_exp1/end/11.h5','cnn_mnist_exp1/end/12.h5','cnn_mnist_exp1/end/13.h5','cnn_mnist_exp1/end/14.h5',
-#               'cnn_mnist_exp1/end/15.h5','cnn_mnist_exp1/end/16.h5','cnn_mnist_exp1/end/17.h5','cnn_mnist_exp1/end/18.h5','cnn_mnist_exp1/end/19.h5']
-# out_path = 'cnn_mnist_exp1/distance.csv'
-# compare_two_model_batch(begin_path,end_path,out_path,kl.E_dis)
-
-
-
-# path = ['standard_init.h5','standard_init.h5','standard_init.h5','standard_init.h5','standard_init.h5','standard_init.h5']
-# path = ['cnn_mlabel1/1009.h5','cnn_mlabel2/1009.h5','cnn_mlabel4/1009.h5','cnn_mlabel6/1009.h5','cnn_mlabel8/1009.h5','cnn_mlabel10/1009.h5']
-# tpath = ['cnn_mlabel1/4645.h5','cnn_mlabel2/4645.h5','cnn_mlabel4/4645.h5','cnn_mlabel6/4645.h5','cnn_mlabel8/4645.h5','cnn_mlabel10/4645.h5']
-# out_path = 'figures/distance_test.csv'
-# compare_two_model_batch(path,tpath,out_path,kl.E_dis)
-
-# path = ['cnn_mlabel2','cnn_mlabel4','cnn_mlabel6','cnn_mlabel8','cnn_mlabel10']
-# tpath = ['cnn_mlabel2/461.h5','cnn_mlabel4/461.h5','cnn_mlabel6/461.h5','cnn_mlabel8/461.h5','cnn_mlabel10/461.h5']
-# opath = ['figures/']
-# analyse_sequence(path,tpath,[kl.E_dis],['E_div'],output_path_set= opath,keyfunc=sort_key_index,Loss_Accuracy=False)
-
-array = np.array(dr.read_csv('figures/E_div.csv'),dtype=float)
-for i in range(len(array)):
-    plt.plot(range(len(array[i])),array[i])
-plt.xlabel('test')
-plt.ylabel('ytest')
-plt.xticks([])
-plt.yticks([])
-plt.show()
+begin_path = ['cnn_cifar_exp1/begin/0.h5','cnn_cifar_exp1/begin/1.h5','cnn_cifar_exp1/begin/2.h5','cnn_cifar_exp1/begin/3.h5','cnn_cifar_exp1/begin/4.h5',
+              'cnn_cifar_exp1/begin/5.h5','cnn_cifar_exp1/begin/6.h5', 'cnn_cifar_exp1/begin/7.h5','cnn_cifar_exp1/begin/8.h5','cnn_cifar_exp1/begin/9.h5',
+              'cnn_cifar_exp1/begin/10.h5','cnn_cifar_exp1/begin/11.h5','cnn_cifar_exp1/begin/12.h5','cnn_cifar_exp1/begin/13.h5','cnn_cifar_exp1/begin/14.h5',
+              'cnn_cifar_exp1/begin/15.h5','cnn_cifar_exp1/begin/16.h5','cnn_cifar_exp1/begin/17.h5','cnn_cifar_exp1/begin/18.h5','cnn_cifar_exp1/begin/19.h5']
+end_path = ['cnn_cifar_exp1/end/0.h5','cnn_cifar_exp1/end/1.h5','cnn_cifar_exp1/end/2.h5','cnn_cifar_exp1/end/3.h5','cnn_cifar_exp1/end/4.h5',
+              'cnn_cifar_exp1/end/5.h5','cnn_cifar_exp1/end/6.h5', 'cnn_cifar_exp1/end/7.h5','cnn_cifar_exp1/end/8.h5','cnn_cifar_exp1/end/9.h5',
+              'cnn_cifar_exp1/end/10.h5','cnn_cifar_exp1/end/11.h5','cnn_cifar_exp1/end/12.h5','cnn_cifar_exp1/end/13.h5','cnn_cifar_exp1/end/14.h5',
+              'cnn_cifar_exp1/end/15.h5','cnn_cifar_exp1/end/16.h5','cnn_cifar_exp1/end/17.h5','cnn_cifar_exp1/end/18.h5','cnn_cifar_exp1/end/19.h5']
+out_path = 'cnn_cifar_exp1/distance.csv'
+compare_two_model_batch(begin_path,end_path,out_path,kl.E_dis)

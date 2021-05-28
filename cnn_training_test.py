@@ -1,4 +1,4 @@
-import cnn_model as cm
+import cnn_model_test as cm
 import numpy as np
 import os
 import random
@@ -505,11 +505,11 @@ def tensorboard_vis():
 # mixed_combination('cnn_mix_all',[0,1,2,3,4,5,6,7,8,9])
 
 # cm.model.load_weights('cnn_mnist_exp1/begin/0.h5')
-# cm.model.fit(cm.x_train, cm.y_train,
-#                  batch_size=cm.batch_size,
-#                  epochs=1,
-#                  verbose=1,
-#                  validation_data=(cm.x_test, cm.y_test))
+cm.model.fit(cm.x_train, cm.y_train,
+                 batch_size=cm.batch_size,
+                 epochs=1,
+                 verbose=1,
+                 validation_data=(cm.x_test, cm.y_test))
 # cm.model.save('test_train.h5')
 
 #tensorfboard
